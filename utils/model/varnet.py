@@ -159,7 +159,7 @@ class SensitivityModel(nn.Module):
             out_chans=out_chans,
             drop_prob=drop_prob,
         )
-
+    # Returns images in one column
     def chans_to_batch_dim(self, x: torch.Tensor) -> Tuple[torch.Tensor, int]:
         b, c, h, w, comp = x.shape
 
@@ -185,7 +185,7 @@ class SensitivityModel(nn.Module):
             2 * torch.min(left, right), torch.ones_like(left)
         )  # force a symmetric center unless 1
         pad = (mask.shape[-2] - num_low_freqs + 1) // 2
-
+        # zero fill
         x = transforms.batched_mask_center(masked_kspace, pad, pad + num_low_freqs)
 
         # convert to image space
@@ -243,7 +243,7 @@ class VarNet(nn.Module):
         result = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace_pred)), dim=1)
         height = result.shape[-2]
         width = result.shape[-1]
-        return result[..., (height - 384) // 2 : 384 + (height - 384) // 2, (width - 384) // 2 : 384 + (width - 384) // 2]
+        return result[..., (height - 384) // 2 : 384 + (height - 384) // 2, (width - 384) // 2 : 384 + (width - 384) // 2] # center crop
 
 
 class VarNetBlock(nn.Module):
