@@ -7,15 +7,18 @@ import time
 from collections import defaultdict
 from utils.data.load_data import create_data_loaders
 from utils.common.utils import save_reconstructions, ssim_loss
-from utils.common.loss_function import SSIMLoss
+from utils.common.loss_function import SSIMLoss, ConsistencyLoss
 from utils.model.unet import Unet
 
-def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
+LAMBDA_CONS = 10
+
+def train_epoch(args, epoch, model, data_loader, optimizer, device):
     model.train()
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
     total_loss = 0.
-
+    total_loss_ssim = 0.
+    total_loss_cons = 0.
     for iter, data in enumerate(data_loader):
         input, target, maximum, _, _ = data
         input = input.cuda(non_blocking=True)
@@ -23,12 +26,19 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
         maximum = maximum.cuda(non_blocking=True)
 
         output = model(input)
-        loss = loss_type(output, target, maximum)
+        ssim_loss = SSIMLoss().to(device=device)
+        cons_loss = ConsistencyLoss.to(device=device)
+        loss_ssim = ssim_loss(output, target, maximum)
+        loss_cons = cons_loss(output, target)
+        loss = loss_ssim+LAMBDA_CONS*loss_cons
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        total_loss_ssim += loss_ssim.total()
+        total_loss_cons +=loss_cons.total()
         total_loss += loss.item()
-
+        loss_dict = dict()
+        
         if iter % args.report_interval == 0:
             print(
                 f'Epoch = [{epoch:3d}/{args.num_epochs:3d}] '
@@ -37,8 +47,13 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
                 f'Time = {time.perf_counter() - start_iter:.4f}s',
             )
         start_iter = time.perf_counter()
+    total_loss_ssim = total_loss_ssim / len_loader
+    total_loss_cons = total_loss_cons / len_loader
     total_loss = total_loss / len_loader
-    return total_loss, time.perf_counter() - start_epoch
+    loss_dict['SSIM'] = total_loss_ssim
+    loss_dict['Consistency'] = total_loss_cons
+    loss_dict['Total'] = total_loss
+    return loss_dict, time.perf_counter() - start_epoch
 
 
 def validate(args, model, data_loader):
@@ -100,7 +115,7 @@ def train(args):
     
     model = Unet(in_chans = args.in_chans, out_chans = args.out_chans)
     model.to(device=device)
-    loss_type = SSIMLoss().to(device=device)
+    
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
     best_val_loss = 1.
@@ -114,8 +129,8 @@ def train(args):
     for epoch in range(start_epoch, args.num_epochs):
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
         
-        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
-        val_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
+        train_loss_dict, train_time = train_epoch(args, epoch, model, train_loader, optimizer)
+        val_loss_dict, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
 
         val_loss_log = np.append(val_loss_log, np.array([[epoch, val_loss]]), axis=0)
         file_path = args.val_loss_dir / "val_loss_log"
@@ -129,10 +144,16 @@ def train(args):
 
         save_model(args, args.exp_dir, epoch + 1, model, optimizer, best_val_loss, is_new_best)
         print(
-            f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
-            f'ValLoss = {val_loss:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
+            f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s'
         )
-
+        print('Train')
+        for keys,item in train_loss_dict:
+            print(keys, "Loss : ", item, end = ' ')
+        print('AvgSSIM :', 1-train_loss_dict['SSIM'])
+        print('VALIDATION')
+        for keys,item in train_loss_dict:
+            print(keys, "Loss : ", item, end = ' ')
+        print('AvgSSIM :', 1-val_loss_dict['SSIM'])
         if is_new_best:
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NewRecord@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             start = time.perf_counter()
