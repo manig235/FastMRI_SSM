@@ -6,7 +6,7 @@ import time
 
 from collections import defaultdict
 from utils.data.load_data import create_data_loaders
-from utils.common.utils import save_reconstructions, ssim_loss
+from utils.common.utils import save_reconstructions, ssim_loss, consistency_loss
 from utils.common.loss_function import SSIMLoss, ConsistencyLoss
 from utils.model.unet import Unet
 
@@ -73,7 +73,7 @@ def validate(args, model, data_loader):
                 reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()
                 targets[fnames[i]][int(slices[i])] = target[i].numpy()
                 inputs[fnames[i]][int(slices[i])] = input[i].cpu().numpy()
-
+    loss_dict = dict()
     for fname in reconstructions:
         reconstructions[fname] = np.stack(
             [out for _, out in sorted(reconstructions[fname].items())]
@@ -86,9 +86,11 @@ def validate(args, model, data_loader):
         inputs[fname] = np.stack(
             [out for _, out in sorted(inputs[fname].items())]
         )
-        metric_loss = sum([ssim_loss(targets[fname], reconstructions[fname]) for fname in reconstructions])
+        loss_dict["SSIM"] = sum([ssim_loss(targets[fname], reconstructions[fname]) for fname in reconstructions])
+        loss_dict["Consistency"] = sum([consistency_loss(targets[fname], reconstructions[fname]) for fname in reconstructions])
+        loss_dict["Total"] = loss_dict['SSIM']+loss_dict["Consistency"]*LAMBDA_CONS
     num_subjects = len(reconstructions)
-    return metric_loss, num_subjects, reconstructions, targets, inputs, time.perf_counter() - start
+    return loss_dict, num_subjects, reconstructions, targets, inputs, time.perf_counter() - start
 
 
 def save_model(args, exp_dir, epoch, model, optimizer, best_val_loss, is_new_best):
@@ -132,9 +134,13 @@ def train(args):
         train_loss_dict, train_time = train_epoch(args, epoch, model, train_loader, optimizer)
         val_loss_dict, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
 
-        val_loss_log = np.append(val_loss_log, np.array([[epoch, val_loss]]), axis=0)
-        file_path = args.val_loss_dir / "val_loss_log"
-        np.save(file_path, val_loss_log)
+        file_path = args.val_loss_dir / "val_loss_log.txt"
+        with open(file_path, 'a') as f:
+            f.write("Epoch : {epoch:03d}\n\n")
+            f.write("SSIM Loss : {val_loss_dict['SSIM']:.4f}\n")
+            f.write("Consistency Loss : {val_loss_dict['Consistency']:.4f}\n")
+            f.write("Total Loss : {val_loss_dict['Total']:.4f}\n\n")
+            
         print(f"loss file saved! {file_path}")
 
         val_loss = val_loss / num_subjects
