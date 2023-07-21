@@ -1,7 +1,5 @@
-# 2023 baby unet
+# 2023 baby varnet
 2023 SNU FastMRI challenge
-
-## 1. 폴더 계층
 
 ### 폴더의 전체 구조
 ![image](https://github.com/LISTatSNU/FastMRI_challenge/assets/39179946/f8037437-ea44-458a-8aee-2ca6bd1a16dd)
@@ -27,38 +25,49 @@
    * {순번}은 1 ~ 58 사이의 숫자입니다. 
 
 ### result 폴더의 구조
-![image](https://github.com/LISTatSNU/FastMRI_challenge/assets/39179946/62e89246-b801-4eb3-9b37-3bf54201afd7)
+![image](https://github.com/LISTatSNU/FastMRI_challenge/assets/39179946/9f0f05be-3519-4cf2-812c-c08b37db8f53)
 
 * result 폴더는 모델의 이름에 따라서 여러 폴더로 나뉠 수 있습니다.
-* 위 그림에서는 default argument인 test_Unet만 고려했습니다. 
+* 위 그림에서는 default argument인 test_varnet만 고려했습니다. 
 * test_Unet 폴더는 아래 3개의 폴더로 구성되어 있습니다.
   * checkpoints - model.pt, best_model.pt의 정보가 있습니다. 모델의 weights 정보를 담고 있습니다.
   * reconstructions_val - validation dataset의 reconstruction을 저장합니다. brain_{mask 형식}_{순번}.h5 형식입니다. (```train.py``` 참고)
   * reconstructions_leaderboard - leaderboard dataset의 reconstruction을 저장합니다. brain_test_{순번}.h5 형식입니다. (```evaluation.py``` 참고)
   * val_loss_log.npy - epoch별로 validation loss를 기록합니다. (```train.py``` 참고)
 
+
 ## 2. 폴더 정보
-Python 3.8.10
 
 ```bash
-├── .gitignore
 ├── evaluate.py
 ├── leaderboard_eval.py
-├── plot.py
-├── README.md
 ├── train.py
 └── utils
-│   ├── common
-│   │   ├── loss_function.py
-│   │   └── utils.py
-│   ├── data
-│   │   ├── load_data.py
-│   │   └── transforms.py
-│   ├── learning
-│   │   ├── test_part.py
-│   │   └── train_part.py
-│   └── model
-│       └── unet.py
+│    ├── common
+│    │   ├── loss_function.py
+│    │   └── utils.py
+│    ├── data
+│    │   ├── load_data.py
+│    │   └── transforms.py
+│    ├── learning
+│    │   ├── test_part.py
+│    │   └── train_part.py
+│    └── model
+│        ├── fastmri
+│        │   ├── coil_combine.py
+│        │   ├── data
+│        │   │   ├── __init__.py
+│        │   │   ├── mri_data.py
+│        │   │   ├── README.md
+│        │   │   ├── subsample.py
+│        │   │   ├── transforms.py
+│        │   │   └── volume_sampler.py
+│        │   ├── fftc.py
+│        │   ├── __init__.py
+│        │   ├── losses.py
+│        │   ├── math.py
+│        ├── unet.py
+│        └── varnet.py
 ├── Data
 └── result
 ```
@@ -68,21 +77,27 @@ Python 3.8.10
 * ```train.py```
    * train/validation을 진행하고 학습한 model의 결과를 result 폴더에 저장합니다.
    * 가장 성능이 좋은 모델의 weights을 ```best_model.pt```으로 저장합니다. 
-* ```evaluation.py```
+* ```reconstruct.py```
    * ```train.py```으로 학습한 ```best_model.pt```을 활용해 leader_board dataset을 reconstruction하고 그 결과를 result 폴더에 저장합니다.
    * acc4와 acc8 옵션을 활용해 두개의 샘플링 마스크(4X, 8X)에 대해서 전부 reconstruction을 실행합니다.
 * ```leaderboard_eval.py```
-   * ```evaluation.py```을 활용해 생성한 reconstruction의 SSIM을 측정합니다.
+   * ```reconstruct.py```을 활용해 생성한 reconstruction의 SSIM을 측정합니다.
    * acc4와 acc8 옵션을 활용해 두개의 샘플링 마스크(4X, 8X)에 대해서 전부 측정을 합니다.
 
+
 ## 4. How to set?
+Python 3.8.10
+
 ```bash
-pip3 install numpy
-pip3 install torch
-pip3 install h5py
-pip3 install scikit-image
-pip3 install opencv-python
-pip3 install matplotlib
+pip install torch
+pip install numpy
+pip install requests
+pip install tqdm
+pip install h5py
+pip install scikit-image
+pip install pyyaml
+pip install opencv-python
+pip install matplotlib
 ```
 
 ## 5. How to train?
@@ -93,31 +108,18 @@ python train.py
 - epoch 별로 validation dataset에 대한 loss 기록합니다.
 
 ## 6. How to reconstruct?
-```bash
-python reconstruct.py -m acc4
 ```
-```bash
-python reconstruct.py -m acc8
+python reconstruct.py
 ```
 - leaderboard 평가를 위한 reconstruction data를 ```result/reconstructions_leaderboard```에 저장합니다.
-- 4X sampling mask, 8X sampling mask에 대해 각각에 대해 진행해줍니다.
 
 ## 7. How to evaluate LeaderBoard Dataset?
 ```bash
-python leaderboard_eval.py -m acc4
+python leaderboard_eval.py
 ```
-```bash
-python leaderboard_eval.py -m acc8
-```
-- leaderboard 순위 경쟁을 위한 4X sampling mask, 8X sampling mask에 대한 SSIM 값을 따로 구합니다.
+- leaderboard 순위 경쟁을 위한 4X sampling mask, 8X sampling mask에 대한 SSIM 값을 한번에 구합니다. 
 
-## 8. Plot!
-```bash
-python3 plot.py 
-```
-<img width="598" alt="스크린샷 2023-06-22 오후 6 53 56" src="https://github.com/LISTatSNU/FastMRI_challenge/assets/39179946/a3cabb78-3c83-4d99-98a4-73b81ac61f38">
-
-## 9. What to submit!
+## 8. What to submit!
 - github repository(코드 실행 방법 readme에 상세 기록)
 - loss 그래프 혹은 기록
 - 모델 weight file
