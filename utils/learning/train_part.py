@@ -131,7 +131,7 @@ def train(args):
     for epoch in range(start_epoch, args.num_epochs):
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
         
-        train_loss_dict, train_time = train_epoch(args, epoch, model, train_loader, optimizer)
+        train_loss_dict, train_time = train_epoch(args, epoch, model, train_loader, optimizer, device)
         val_loss_dict, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
 
         file_path = args.val_loss_dir / "val_loss_log.txt"
@@ -140,7 +140,7 @@ def train(args):
             f.write("SSIM Loss : {val_loss_dict['SSIM']:.4f}\n")
             f.write("Consistency Loss : {val_loss_dict['Consistency']:.4f}\n")
             f.write("Total Loss : {val_loss_dict['Total']:.4f}\n\n")
-            
+
         print(f"loss file saved! {file_path}")
 
         val_loss = val_loss / num_subjects
