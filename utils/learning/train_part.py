@@ -10,7 +10,7 @@ from utils.common.utils import save_reconstructions, ssim_loss, consistency_loss
 from utils.common.loss_function import SSIMLoss, ConsistencyLoss
 from utils.model.unet import Unet
 
-LAMBDA_CONS = 100
+LAMBDA_CONS = 1000
 
 def train_epoch(args, epoch, model, data_loader, optimizer, device):
     model.train()
@@ -103,7 +103,7 @@ def save_model(args, exp_dir, epoch, model, optimizer, best_val_loss, is_new_bes
             'best_val_loss': best_val_loss,
             'exp_dir': exp_dir
         },
-        f=exp_dir / 'model.pt'
+        f=exp_dir / f'model_{epoch:03d}.pt'
     )
     if is_new_best:
         shutil.copyfile(exp_dir / 'model.pt', exp_dir / 'best_model.pt')
@@ -117,7 +117,8 @@ def train(args):
     
     model = Unet(in_chans = args.in_chans, out_chans = args.out_chans)
     model.to(device=device)
-    
+    if args.model_path is not None:
+       model.load_state_dict(torch.load(args.model_path)['model'])
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
     best_val_loss = 1.
@@ -136,14 +137,14 @@ def train(args):
 
         file_path = args.val_loss_dir / "val_loss_log.txt"
         with open(file_path, 'a+') as f:
-            f.write(f"Epoch : {epoch:03d}\n\n")
-            f.write(f"SSIM Loss : {val_loss_dict['SSIM']:.4f}\n")
-            f.write(f"Consistency Loss : {val_loss_dict['Consistency']:.4f}\n")
-            f.write(f"Total Loss : {val_loss_dict['Total']:.4f}\n\n")
+            f.write(f"{val_loss_dict['SSIM']:.12f}\n")
+            f.write(f"Consistency Loss : {val_loss_dict['Consistency']:.12f}\n")
+            f.write(f"Total Loss : {val_loss_dict['Total']:.12f}\n\n")
         print(f"loss file saved! {file_path}")
         val_loss = val_loss_dict['Total']
         val_loss = val_loss / num_subjects
-
+        for keys in val_loss_dict.keys():
+            val_loss_dict[keys] = val_loss_dict[keys]/num_subjects
         is_new_best = val_loss < best_val_loss
         best_val_loss = min(best_val_loss, val_loss)
 
@@ -153,12 +154,12 @@ def train(args):
         )
         print('Train')
         for keys,item in train_loss_dict.items():
-            print(keys, "Loss : ", f"{item:.4f}", end = ' ')
-        print('AvgSSIM :', f"{1-train_loss_dict['SSIM']:.4f}")
+            print(keys, "Loss : ", f"{item:.8f}", end = ' ')
+        print('AvgSSIM :', f"{1-train_loss_dict['SSIM']:.5f}")
         print('VALIDATION')
-        for keys,item in train_loss_dict.items():
-            print(keys, "Loss : ", f"{item:.4f}", end = ' ')
-        print('AvgSSIM :', f"{1-train_loss_dict['SSIM']:.4f}")
+        for keys,item in val_loss_dict.items():
+            print(keys, "Loss : ", f"{item:.8f}", end = ' ')
+        print('AvgSSIM :', f"{1-val_loss_dict['SSIM']:.8f}")
         if is_new_best:
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NewRecord@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             start = time.perf_counter()
