@@ -24,6 +24,7 @@ class SliceData(Dataset):
                 ]
 
         kspace_files = list(Path(root / "kspace").iterdir())
+        # make k-space slice(masking)
         for fname in sorted(kspace_files):
             num_slices = self._get_metadata(fname)
 
