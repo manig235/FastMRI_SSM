@@ -3,14 +3,13 @@ from pathlib import Path
 import h5py
 import os, sys
 import torch
-from utils.model.varnet import VarNet
-from utils.data.load_data import create_data_loaders
+from model.varnet import VarNet
+from data.load_data import create_data_loaders
 from collections import defaultdict
 import numpy as np
 if os.getcwd() + '/utils/model/' not in sys.path:
     sys.path.insert(1, os.getcwd() + '/utils/model/')
 
-from utils.learning.test_part import forward
 
     
 def parse():
