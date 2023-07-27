@@ -20,7 +20,10 @@ class DataTransform:
         input = to_tensor(input)
         if not self.isforward:
             target = to_tensor(target)
-            maximum = attrs[self.max_key]
+            if self.max_key != 'max':
+                maximum = -1
+            else:
+                maximum = attrs[self.max_key]
         else:
             target = -1
             maximum = -1

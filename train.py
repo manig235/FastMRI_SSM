@@ -28,6 +28,7 @@ def parse():
     parser.add_argument('--max-key', type=str, default='max', help='Name of max key in attributes')
     parser.add_argument('--seed', type=int, default=430, help='Fix random seed')
     parser.add_argument('--model-path', type=str, default = None, help = 'load model')
+    parser.add_argument('-c', '--cascade', type = int, default = 1)
     args = parser.parse_args()
     return args
 

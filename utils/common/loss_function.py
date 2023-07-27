@@ -61,7 +61,7 @@ class ConsistencyLoss(nn.Module):
         self.blur = lambda x : gaussian_blur(x,self.win_size)
 
     def forward(self, X, Y):
-        X_blur = self.blur(X)
-        Y_blur = self.blur(Y)
-        loss = self.l1loss(X_blur, Y_blur)
+        #X_blur = self.blur(X)
+        #Y_blur = self.blur(Y)
+        loss = self.l1loss(X,Y)
         return loss

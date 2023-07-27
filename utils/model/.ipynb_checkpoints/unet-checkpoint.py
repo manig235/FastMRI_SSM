@@ -2,6 +2,25 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+class UnetCascade(nn.Module):
+    def __init__(self, in_chans, out_chans, num_of_unet, consistency = 0.2):
+        super().__init__()
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+        self.num_of_unet = num_of_unet
+        self.unet_list = nn.ModuleList()
+        self.batchNorm = nn.BatchNorm2d(1)
+        self.consistency = consistency
+        for i in range(num_of_unet):
+            self.unet_list.append(Unet(self.in_chans,self.out_chans))
+    def forward(self, input):
+        output = input
+        for unet in self.unet_list:
+            output = self.batchNorm(output.unsqueeze(1)).squeeze(1)
+            prev_output = output
+            output = unet(output)
+            output = self.consistency*(prev_output)+(1-self.consistency)*output
+        return output
 
 class Unet(nn.Module):
 
@@ -9,12 +28,13 @@ class Unet(nn.Module):
         super().__init__()
         self.in_chans = in_chans
         self.out_chans = out_chans
-
+        
         self.first_block = ConvBlock(in_chans, 2)
         self.down1 = Down(2, 4)
         self.down2 = Down(4, 8)
         self.down3 = Down(8, 16)
         self.down4 = Down(16, 32)
+        self.conv1 = ConvBlock(32, 32)
         self.up4 = Up(32, 16)
         self.up3 = Up(16, 8)
         self.up2 = Up(8, 4)
@@ -40,8 +60,10 @@ class Unet(nn.Module):
         d3 = self.down2(d2)
         d4 = self.down3(d3)
         d5 = self.down4(d4)
-        u4 = self.up4(d5, d4)
+        d6 = self.conv1(d5)
+        u4 = self.up4(d6, d4)
         u3 = self.up3(u4, d3)
+        u3 = self.up3(d4, d3)
         u2 = self.up2(u3, d2)
         u1 = self.up1(u2, d1)
         output = self.last_block(u1)
