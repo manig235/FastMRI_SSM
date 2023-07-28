@@ -13,7 +13,7 @@ class SliceData(Dataset):
         self.examples = []
 
         files = list(Path(root).iterdir())
-    
+        files = [files[9]]
         for fname in sorted(files):
             num_slices = self._get_metadata(fname)
             self.examples += [

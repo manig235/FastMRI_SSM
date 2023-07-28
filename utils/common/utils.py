@@ -47,6 +47,7 @@ def ssim_loss(gt, pred, maxval=None):
     ssim = ssim / gt.shape[0]
     return 1 - ssim
 
+
 def fftc(data, axes=(-2, -1), norm="ortho"):
     """
     Centered fast fourier transform

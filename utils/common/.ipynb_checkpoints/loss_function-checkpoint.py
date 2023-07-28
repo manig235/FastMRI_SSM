@@ -7,7 +7,7 @@ LICENSE file in the root directory of this source tree.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torchvision.transforms.functional import gaussian_blur 
 
 class SSIMLoss(nn.Module):
     """
@@ -52,3 +52,17 @@ class SSIMLoss(nn.Module):
         S = (A1 * A2) / D
 
         return 1 - S.mean()
+
+class ConsistencyLoss(nn.Module):
+    def __init__(self, win_size: int = 7):
+        super().__init__()
+        self.win_size = win_size
+        self.l1loss = nn.L1Loss(reduction = 'mean')
+        self.blur = lambda x : gaussian_blur(x,self.win_size)
+
+    def forward(self, X, Y):
+        #X_blur = self.blur(X)
+        #Y_blur = self.blur(Y)
+        loss = self.l1loss(X,Y)
+        return loss
+    
