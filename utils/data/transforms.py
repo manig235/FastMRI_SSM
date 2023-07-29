@@ -24,9 +24,9 @@ def random_transformation():
     elif p<0.5:
         return lambda x : F.rotate(x, 270)
     elif p<0.75: 
-        return lambda x : torch.filp(x, 1)
+        return lambda x : torch.flip(x, (1,))
     else: 
-        return lambda x : torch.filp(x, 2)
+        return lambda x : torch.flip(x, (2,))
     
 class DataTransform:
     def __init__(self, isforward, max_key):
@@ -44,6 +44,6 @@ class DataTransform:
             target = -1
             maximum = -1
         f = random_transformation()
-        input = f(input)
-        target = f(target)
+        input = f(input.unsqueeze(0)).squeeze(0)
+        target = f(target.unsqueeze(0)).squeeze(0)
         return input, target, maximum, fname, slice
