@@ -8,9 +8,10 @@ from collections import defaultdict
 from utils.data.load_data import create_data_loaders
 from utils.common.utils import save_reconstructions, ssim_loss, consistency_loss
 from utils.common.loss_function import SSIMLoss, ConsistencyLoss
-from utils.model.unet import Unet, UnetCascade
+from utils.model.unet import Unet
 
-LAMBDA_CONS = 100
+
+LAMBDA_CONS = 0
 
 def train_epoch(args, epoch, model, data_loader, optimizer, device):
     model.train()
@@ -115,10 +116,10 @@ def train(args):
     torch.cuda.set_device(device)
     print('Current cuda device: ', torch.cuda.current_device())
     
-    model = Unet(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = args.cascade, consistency = 0.3)
+    model = Unet(in_chans = args.in_chans, out_chans = args.out_chans)
     model.to(device=device)
-    if args.model_path is not None:
-       model.load_state_dict(torch.load(args.model_path)['model'])
+#     if args.model_path is not None:
+#        model.load_state_dict(torch.load(args.model_path)['model'])
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
     best_val_loss = 1.

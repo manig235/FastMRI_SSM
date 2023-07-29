@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 import torch
 import random
-
+from .loss_function import ConsistencyLoss
 def save_reconstructions(reconstructions, out_dir, targets=None, inputs=None):
     """
     Saves the reconstructions from a model into h5 files that is appropriate for submission
@@ -46,6 +46,16 @@ def ssim_loss(gt, pred, maxval=None):
 
     ssim = ssim / gt.shape[0]
     return 1 - ssim
+
+def consistency_loss(gt, pred, win_size = 5):
+    gt = torch.tensor(gt).unsqueeze(1)
+    pred = torch.tensor(pred).unsqueeze(1)
+    cons_loss = ConsistencyLoss(win_size = win_size)
+    loss_cons = 0.
+    for slice_num in range(gt.shape[0]):
+        loss_cons += cons_loss(gt[slice_num], pred[slice_num])
+    loss_cons = loss_cons / gt.shape[0]
+    return loss_cons
 
 
 def fftc(data, axes=(-2, -1), norm="ortho"):
