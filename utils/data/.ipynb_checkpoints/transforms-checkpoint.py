@@ -1,7 +1,6 @@
 import numpy as np
 import torch
-import random
-import torchvision.transforms.functional as F
+
 def to_tensor(data):
     """
     Convert numpy array to PyTorch tensor. For complex arrays, the real and imaginary parts
@@ -13,21 +12,6 @@ def to_tensor(data):
     """
     return torch.from_numpy(data)
 
-def random_transformation():
-    p = random.random()
-    if p < 0.2:
-        return lambda x : x
-    elif p<0.3:
-        return lambda x : F.rotate(x, 90)
-    elif p<0.4:
-        return lambda x : F.rotate(x, 180)
-    elif p<0.5:
-        return lambda x : F.rotate(x, 270)
-    elif p<0.75: 
-        return lambda x : torch.filp(x, 1)
-    else: 
-        return lambda x : torch.filp(x, 2)
-    
 class DataTransform:
     def __init__(self, isforward, max_key):
         self.isforward = isforward
@@ -43,7 +27,4 @@ class DataTransform:
         else:
             target = -1
             maximum = -1
-        f = random_transformation()
-        input = f(input)
-        target = f(target)
         return input, target, maximum, fname, slice
