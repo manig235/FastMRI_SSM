@@ -54,6 +54,7 @@ class Unet(nn.Module):
         d2 = self.down1(d1)
         d3 = self.down2(d2)
         d4 = self.down3(d3)
+#         print(d4.shape)
 #         d5 = self.down4(d4)
 #         d5 = d5.reshape(-1,32,1,576)
 #         c5 = self.linear_block(d5)
@@ -107,7 +108,6 @@ class Down(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-
 class Up(nn.Module):
 
     def __init__(self, in_chans, out_chans):
@@ -115,9 +115,39 @@ class Up(nn.Module):
         self.in_chans = in_chans
         self.out_chans = out_chans
         self.up = nn.ConvTranspose2d(in_chans, in_chans // 2, kernel_size=2, stride=2)
+        self.att = Up_Attention(in_chans, out_chans, out_chans)
         self.conv =nn.Sequential(ConvBlock(in_chans, out_chans), DropoutLayer(0.1))
-        
+
     def forward(self, x, concat_input):
+        concat_input = self.att(x, concat_input)
         x = self.up(x)
         concat_output = torch.cat([concat_input, x], dim=1)
         return self.conv(concat_output)
+
+class Up_Attention(nn.Module):
+
+    def __init__(self, in_chans, out_chans, mid_chans = None):
+        super().__init__()
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+        if mid_chans is None:
+            mid_chans = out_chans
+        self.mid_chans = mid_chans
+        self.up_input = nn.Conv2d(in_chans, mid_chans, kernel_size = 1, stride = 1)
+        self.up_concat = nn.Conv2d(out_chans, mid_chans, kernel_size = 1, stride = 2)
+        self.flat = nn.Conv2d(mid_chans, 1, kernel_size = 1)
+        self.ReLU = nn.ReLU(inplace=True)
+        self.sig = nn.Sigmoid()
+        self.up_sample = nn.Upsample(scale_factor = 2)
+        
+    def forward(self, x, concat_input):
+        up_input = self.up_input(x)
+        up_concat = self.up_concat(concat_input)
+        add = up_input + up_concat
+        add_act = self.ReLU(add)
+        flat = self.flat(add_act)
+        flat_sig = self.sig(flat)
+        up_sam = self.up_sample(flat_sig)
+        return up_sam * concat_input
+        
+        

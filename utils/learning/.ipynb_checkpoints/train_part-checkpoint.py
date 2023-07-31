@@ -11,7 +11,7 @@ from utils.common.loss_function import SSIMLoss, ConsistencyLoss
 from utils.model.unet import Unet
 
 
-LAMBDA_CONS = 0
+LAMBDA_CONS = 100
 
 def train_epoch(args, epoch, model, data_loader, optimizer, device):
     model.train()
