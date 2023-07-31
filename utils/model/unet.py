@@ -55,7 +55,7 @@ class Unet(nn.Module):
         for _ in range(num_pool_layers - 1):
             self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
             self.up_conv.append(ConvBlock(ch * 2, ch, drop_prob))
-            self.up_attention.append(Up_Attention(ch * 2 , ch))
+            self.up_attention.append(Up_Attention(ch * 2 , ch, 32))
             ch //= 2
 
         self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
