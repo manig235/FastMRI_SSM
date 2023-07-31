@@ -48,12 +48,14 @@ class Unet(nn.Module):
             self.down_sample_layers.append(ConvBlock(ch, ch * 2, drop_prob))
             ch *= 2
         self.conv = ConvBlock(ch, ch * 2, drop_prob)
-
+    
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
+        self.up_attention = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
             self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
             self.up_conv.append(ConvBlock(ch * 2, ch, drop_prob))
+            self.up_attention.append(Up_Attention(ch * 2 , ch))
             ch //= 2
 
         self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
@@ -84,8 +86,9 @@ class Unet(nn.Module):
         output = self.conv(output)
 
         # apply up-sampling layers
-        for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
+        for transpose_conv, conv, up_att in zip(self.up_transpose_conv, self.up_conv, self.up_attention):
             downsample_layer = stack.pop()
+            downsample_layer = up_att(output, downsample_layer)
             output = transpose_conv(output)
 
             # reflect pad on the right/botton if needed to handle odd input dimensions
@@ -183,3 +186,29 @@ class TransposeConvBlock(nn.Module):
             Output tensor of shape `(N, out_chans, H*2, W*2)`.
         """
         return self.layers(image)
+    
+class Up_Attention(nn.Module):
+
+    def __init__(self, in_chans, out_chans, mid_chans = None):
+        super().__init__()
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+        if mid_chans is None:
+            mid_chans = out_chans
+        self.mid_chans = mid_chans
+        self.up_input = nn.Conv2d(in_chans, mid_chans, kernel_size = 1, stride = 1)
+        self.up_concat = nn.Conv2d(out_chans, mid_chans, kernel_size = 1, stride = 2)
+        self.flat = nn.Conv2d(mid_chans, 1, kernel_size = 1)
+        self.ReLU = nn.ReLU(inplace=True)
+        self.sig = nn.Sigmoid()
+        self.up_sample = nn.Upsample(scale_factor = 2)
+        
+    def forward(self, x, concat_input):
+        up_input = self.up_input(x)
+        up_concat = self.up_concat(concat_input)
+        add = up_input + up_concat
+        add_act = self.ReLU(add)
+        flat = self.flat(add_act)
+        flat_sig = self.sig(flat)
+        up_sam = self.up_sample(flat_sig)
+        return up_sam * concat_input
