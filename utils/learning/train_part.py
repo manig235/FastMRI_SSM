@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import time
 import requests
+import random
 from tqdm import tqdm
 from pathlib import Path
 import copy
@@ -16,13 +17,16 @@ from utils.model.varnet import VarNet
 
 import os
 
-def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
+def train_epoch(args, epoch, model, data_loader, optimizer, loss_type, train_size):
     model.train()
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
     total_loss = 0.
-
-    for iter, data in enumerate(data_loader):
+    
+    for _ in range(train_size):
+        index = int(random.random()*len_loader)
+        print(index)
+        data = data_loader[index]
         mask, kspace, target, maximum, _, _ = data
         mask = mask.cuda(non_blocking=True)
         kspace = kspace.cuda(non_blocking=True)
@@ -44,7 +48,7 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
                 f'Time = {time.perf_counter() - start_iter:.4f}s',
             )
             start_iter = time.perf_counter()
-    total_loss = total_loss / len_loader
+    total_loss = total_loss / train_size
     return total_loss, time.perf_counter() - start_epoch
 
 
@@ -150,10 +154,13 @@ def train(args):
     val_loader = create_data_loaders(data_path = args.data_path_val, args = args)
     
     val_loss_log = np.empty((0, 2))
+    if args.train_size is None:
+        args.train_size = len(train_loader)
+        
     for epoch in range(start_epoch, args.num_epochs):
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
         
-        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
+        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type, args.train_size)
         val_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
         
         val_loss_log = np.append(val_loss_log, np.array([[epoch, val_loss]]), axis=0)
