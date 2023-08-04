@@ -34,6 +34,7 @@ def parse():
     parser.add_argument('--max-key', type=str, default='max', help='Name of max key in attributes')
     parser.add_argument('--seed', type=int, default=430, help='Fix random seed')
     parser.add_argument('--train-size', type = int, default=None)
+    parser.add_argument('--val-size', type = int, default=None)
     args = parser.parse_args()
     return args
 
