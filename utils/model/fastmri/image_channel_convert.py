@@ -41,6 +41,13 @@ def Channel18To20(input):
     stack_20 = torch.sum(input[:,9:,...], dim = 1)/9
     return torch.cat([input, stack_19.unsqueeze(1), stack_20.unsqueeze(1)], axis = 1)
 
+def Channel24To20(input):
+    stack_17 = torch.sum(input[:,(16,20),...], dim = 1)/2
+    stack_18 = torch.sum(input[:,(17,21),...], dim = 1)/2
+    stack_19 = torch.sum(input[:,(18,22),...], dim = 1)/2
+    stack_20 = torch.sum(input[:,(19,23),...], dim = 1)/2
+    return torch.cat([input[:,:16,...], stack_17.unsqueeze(1), stack_18.unsqueeze(1), stack_19.unsqueeze(1), stack_20.unsqueeze(1)], axis = 1)
+
 def image_channel_converter(input):
     chans = input.shape[1]
     if chans == 16:
@@ -59,4 +66,6 @@ def image_channel_converter(input):
         return Channel2To20(input)
     elif chans == 10:
         return Channel10To20(input)
+    elif chans == 24:
+        return Channel24To20(input)
     return input
