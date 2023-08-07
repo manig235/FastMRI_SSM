@@ -10,27 +10,31 @@ import copy
 
 from collections import defaultdict
 from utils.data.load_data import create_data_loaders
-from utils.common.utils import save_reconstructions, ssim_loss
+from utils.common.utils import save_reconstructions, ssim_loss, kspace2image
 from utils.common.loss_function import SSIMLoss
 from utils.model.varnet import VarNet
 
 import os
-
+LAMBDA_KCONS = 100
 def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     model.train()
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
     total_loss = 0.
-
+    ssim_loss = 0.
     for iter, data in enumerate(data_loader):
-        mask, kspace, target, maximum, _, _ = data
+        mask, kspace, target_kspace, target, maximum, _, _ = data
         mask = mask.cuda(non_blocking=True)
         kspace = kspace.cuda(non_blocking=True)
+        target_kspace = target_kspace.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
         maximum = maximum.cuda(non_blocking=True)
 
-        output = model(kspace, mask)
-        loss = loss_type(output, target, maximum)
+        kspace_output = model(kspace, mask)
+#         print(kspace_output.shape)
+        image_output = kspace2image(kspace_output)
+        ssim_loss += loss_type(image_output, target, maximum).detach().item()
+        loss = loss_type(image_output, target, maximum) + nn.L1Loss()(target_kspace,kspace_output)*LAMBDA_KCONS
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -45,7 +49,8 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
             )
             start_iter = time.perf_counter()
     total_loss = total_loss / len_loader
-    return total_loss, time.perf_counter() - start_epoch
+    ssim_loss = ssim_loss / len_loader
+    return total_loss, ssim_loss, time.perf_counter() - start_epoch
 
 
 def validate(args, model, data_loader):
@@ -53,18 +58,18 @@ def validate(args, model, data_loader):
     reconstructions = defaultdict(dict)
     targets = defaultdict(dict)
     start = time.perf_counter()
-
+    kspace_loss = 0.
     with torch.no_grad():
         for iter, data in enumerate(data_loader):
-            mask, kspace, target, _, fnames, slices = data
+            mask, kspace, target_kspace, target, _, fnames, slices = data
             kspace = kspace.cuda(non_blocking=True)
             mask = mask.cuda(non_blocking=True)
-            output = model(kspace, mask)
-
-            for i in range(output.shape[0]):
-                reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()
+            kspace_output = model(kspace, mask)
+            image_output = kspace2image(kspace_output)
+            for i in range(image_output.shape[0]):
+                reconstructions[fnames[i]][int(slices[i])] = image_output[i].cpu().numpy()
                 targets[fnames[i]][int(slices[i])] = target[i].numpy()
-
+            kspace_loss += (nn.L1Loss()(target_kspace,kspace_output.cpu())).item()*LAMBDA_KCONS
     for fname in reconstructions:
         reconstructions[fname] = np.stack(
             [out for _, out in sorted(reconstructions[fname].items())]
@@ -73,9 +78,10 @@ def validate(args, model, data_loader):
         targets[fname] = np.stack(
             [out for _, out in sorted(targets[fname].items())]
         )
-    metric_loss = sum([ssim_loss(targets[fname], reconstructions[fname]) for fname in reconstructions])
+    sum_ssim_loss = sum([ssim_loss(targets[fname], reconstructions[fname]) for fname in reconstructions])
+    metric_loss = sum_ssim_loss + kspace_loss
     num_subjects = len(reconstructions)
-    return metric_loss, num_subjects, reconstructions, targets, None, time.perf_counter() - start
+    return metric_loss, sum_ssim_loss, num_subjects, reconstructions, targets, None, time.perf_counter() - start
 
 
 def save_model(args, exp_dir, epoch, model, optimizer, best_val_loss, is_new_best):
@@ -121,8 +127,14 @@ def train(args):
     model = VarNet(num_cascades=args.cascade, 
                    chans=args.chans, 
                    sens_chans=args.sens_chans)
+    """
+    if args.chkpt_dir is not None:
+        checkpoint = torch.load(args.chkpt_dir / 'best_model.pt', map_location='cpu')
+        print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+        model.load_state_dict(checkpoint['model'])
+    """
     model.to(device=device)
-
+    
     """
     # using pretrained parameter
     VARNET_FOLDER = "https://dl.fbaipublicfiles.com/fastMRI/trained_models/varnet/"
@@ -153,8 +165,8 @@ def train(args):
     for epoch in range(start_epoch, args.num_epochs):
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
         
-        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
-        val_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
+        train_loss, train_ssim_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
+        val_loss, val_ssim_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
         
         val_loss_log = np.append(val_loss_log, np.array([[epoch, val_loss]]), axis=0)
         file_path = os.path.join(args.val_loss_dir, "val_loss_log")
@@ -173,8 +185,8 @@ def train(args):
 
         save_model(args, args.exp_dir, epoch + 1, model, optimizer, best_val_loss, is_new_best)
         print(
-            f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
-            f'ValLoss = {val_loss:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
+            f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainLoss = {train_loss:.4g} TrainSSIMLoss = {train_ssim_loss:.4g}',
+            f'ValLoss = {val_loss:.4g} ValSSIMLoss = {val_ssim_loss:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
         )
 
         if is_new_best:

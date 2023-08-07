@@ -18,7 +18,7 @@ class SliceData(Dataset):
 #         print(output_list)
         if not forward:
             image_files = list(Path(root / "image").iterdir())
-#            image_files = [image_files[0], image_files[1]]
+#             image_files = [image_files[0]]
             for fname in sorted(image_files):
                 num_slices = self._get_metadata(fname)
 
@@ -29,7 +29,7 @@ class SliceData(Dataset):
         kspace_files = list(Path(root / "kspace").iterdir())
 #         kspace_files = [path for path in kspace_files if not str(path).split('/')[-1] in output_list]
 #         print(kspace_files)
- #       kspace_files = [kspace_files[0], kspace_files[1]]
+#         kspace_files = [kspace_files[0]]
         # make k-space slice(masking)
         for fname in sorted(kspace_files):
             num_slices = self._get_metadata(fname)
