@@ -18,7 +18,7 @@ class SliceData(Dataset):
 #         print(output_list)
         if not forward:
             image_files = list(Path(root / "image").iterdir())
-#             image_files = [image_files[0]]
+            image_files = [image_files[0]]
             for fname in sorted(image_files):
                 num_slices = self._get_metadata(fname)
 
