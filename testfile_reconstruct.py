@@ -72,25 +72,46 @@ if __name__ == '__main__':
                 reconstructions[fnames[i]][int(slices[i])] = output[i]
             if prev_file != fnames[0]:
                 print(prev_file)
+                print("writing")
+                fname = prev_file
+                reconstructions[fname] = np.stack(
+                    [out for _, out in sorted(reconstructions[fname].items())]
+                )
+                args.output.mkdir(exist_ok=True, parents=True)
+                with h5py.File(args.output / Path(fname), 'w') as f:
+                    print(str(args.output / Path(fname)))
+                    f.create_dataset('recons', data=reconstructions[fname])
+                    image_path = Path('/Data')/args.type/Path('image/'+fname)
+
+                    image_file = h5py.File(image_path, 'r')
+                    attrs = dict(image_file.attrs)
+                    f.create_dataset('target', data=image_file['image_label'])
+                    f.create_dataset('input', data = image_file['image_input'])
+                    f.create_dataset('grappa', data = image_file['image_grappa'])
+                    f.attrs.create("max", attrs["max"])
+                    f.attrs.create("norm", attrs["norm"])
+                print(reconstructions.keys())
+                reconstructions.pop(prev_file, None)
                 prev_file = fnames[0]
-    print("writing")
-    for fname in reconstructions:
-        reconstructions[fname] = np.stack(
-            [out for _, out in sorted(reconstructions[fname].items())]
-        )
-        args.output.mkdir(exist_ok=True, parents=True)
-        with h5py.File(args.output / Path(fname), 'w') as f:
-            print(str(args.output / Path(fname)))
-            f.create_dataset('recons', data=reconstructions[fname])
-            image_path = Path('/Data')/args.type/Path('image/'+fname)
-            
-            image_file = h5py.File(image_path, 'r')
-            attrs = dict(image_file.attrs)
-            f.create_dataset('target', data=image_file['image_label'])
-            f.create_dataset('input', data = image_file['image_input'])
-            f.attrs.create("max", attrs["max"])
-            f.attrs.create("norm", attrs["norm"])
-        print(fname)
+                print(reconstructions.keys())
+        print("writing last reconstruction")
+        for fname in reconstructions:
+            reconstructions[fname] = np.stack(
+                [out for _, out in sorted(reconstructions[fname].items())]
+            )
+            args.output.mkdir(exist_ok=True, parents=True)
+            with h5py.File(args.output / Path(fname), 'w') as f:
+                print(str(args.output / Path(fname)))
+                f.create_dataset('recons', data=reconstructions[fname])
+                image_path = Path('/Data')/args.type/Path('image/'+fname)
+
+                image_file = h5py.File(image_path, 'r')
+                attrs = dict(image_file.attrs)
+                f.create_dataset('target', data=image_file['image_label'])
+                f.create_dataset('input', data = image_file['image_input'])
+                f.create_dataset('grappa', data = image_file['image_grappa'])
+                f.attrs.create("max", attrs["max"])
+                f.attrs.create("norm", attrs["norm"])
         """
             if prev_file == '':
                 prev_file = fnames[0]
