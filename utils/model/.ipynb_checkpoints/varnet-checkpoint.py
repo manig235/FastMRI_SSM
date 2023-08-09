@@ -243,7 +243,64 @@ class VarNet(nn.Module):
 #        return kspace_pred
         image_pred = fastmri.ifft2c(kspace_pred)
         image_pred = fastmri.complex_abs(image_pred)
-#        image_pred = image_channel_converter(image_pred)
+#       image_pred = image_channel_converter(image_pred)
+#         height = image_pred.shape[-2]
+#         width = image_pred.shape[-1]
+#         image_pred = image_pred[..., (height - 384) // 2 : 384 + (height - 384) // 2, (width - 384) // 2 : 384 + (width - 384) // 2] 
+#         attention_image= self.GFFB(image_pred)
+        result = fastmri.rss(image_pred, dim=1)
+        height = result.shape[-2]
+        width = result.shape[-1]
+        return result[..., (height - 384) // 2 : 384 + (height - 384) // 2, (width - 384) // 2 : 384 + (width - 384) // 2] # center crop
+#         return result
+
+class VarAttention(nn.Module):
+    """
+    A full variational network model.
+
+    This model applies a combination of soft data consistency with a U-Net
+    regularizer. To use non-U-Net regularizers, use VarNetBlock.
+    """
+
+    def __init__(
+        self,
+        num_cascades: int = 12,
+        sens_chans: int = 8,
+        sens_pools: int = 4,
+        chans: int = 18,
+        pools: int = 4,
+    ):
+        """
+        Args:
+            num_cascades: Number of cascades (i.e., layers) for variational
+                network.
+            sens_chans: Number of channels for sensitivity map U-Net.
+            sens_pools Number of downsampling and upsampling layers for
+                sensitivity map U-Net.
+            chans: Number of channels for cascade U-Net.
+            pools: Number of downsampling and upsampling layers for cascade
+                U-Net.
+        """
+        super().__init__()
+
+        self.sens_net = SensitivityModel(sens_chans, sens_pools)
+        self.cascades = nn.ModuleList(
+            [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
+        )
+#         self.GFFB = AttentionBlock(20, 20)
+
+    # this k-space is not ma
+    def forward(self, masked_kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        sens_maps = self.sens_net(masked_kspace, mask)
+        kspace_pred = masked_kspace.clone()
+
+        for cascade in self.cascades:
+            kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
+            torch.cuda.empty_cache()
+#        return kspace_pred
+        image_pred = fastmri.ifft2c(kspace_pred)
+        image_pred = fastmri.complex_abs(image_pred)
+#       image_pred = image_channel_converter(image_pred)
 #         height = image_pred.shape[-2]
 #         width = image_pred.shape[-1]
 #         image_pred = image_pred[..., (height - 384) // 2 : 384 + (height - 384) // 2, (width - 384) // 2 : 384 + (width - 384) // 2] 

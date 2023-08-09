@@ -287,7 +287,7 @@ class VarAttention(nn.Module):
         self.cascades = nn.ModuleList(
             [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
         )
-        self.GFFB = AttentionBlock(20, 20)
+#         self.GFFB = AttentionBlock(20, 20)
 
     # this k-space is not ma
     def forward(self, masked_kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -296,6 +296,7 @@ class VarAttention(nn.Module):
 
         for cascade in self.cascades:
             kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
+            torch.cuda.empty_cache()
 #        return kspace_pred
         image_pred = fastmri.ifft2c(kspace_pred)
         image_pred = fastmri.complex_abs(image_pred)
