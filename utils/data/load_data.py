@@ -30,6 +30,10 @@ class SliceData(Dataset):
 
     def __getitem__(self, i):
         fname, dataslice = self.examples[i]
+#         if not self.forward:
+#             base_path = Path('/Data/train/image')
+#         else:
+#             base_path = Path('/Data/val/image')
         with h5py.File(fname, "r") as hf:
             input = hf[self.input_key][dataslice]
             if self.forward:
@@ -37,7 +41,9 @@ class SliceData(Dataset):
             else:
                 target = hf[self.target_key][dataslice]
             attrs = dict(hf.attrs)
-        return self.transform(input, target, attrs, fname.name, dataslice)
+        with h5py.File("/Data"+str(fname)[14:] , "r") as h:
+            grappa = h["image_grappa"][dataslice]
+        return self.transform(input, grappa, target, attrs, fname.name, dataslice)
 
 
 def create_data_loaders(data_path, args, shuffle=False, isforward=False):

@@ -2,14 +2,25 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-class DropoutLayer(nn.Module):
-    def __init__(self, p = 0.2):
+class UnetCascade(nn.Module):
+    def __init__(self, in_chans, out_chans, num_of_unet, consistency = 0.4):
         super().__init__()
-        self.p = p
-        self.dropout = nn.Dropout(p = self.p)
-    def forward(self, input):
-        return self.dropout(input
-                           )
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+        self.num_of_unet = num_of_unet
+        self.unet_list = nn.ModuleList()
+#         self.batchNorm = nn.BatchNorm2d(1)
+        self.consistency = consistency
+        for i in range(num_of_unet):
+            self.unet_list.append(Unet(self.in_chans,self.out_chans))
+    def forward(self, input, grappa):
+        output = input
+        for unet in self.unet_list:
+            prev_output = output
+            output = unet(output, grappa)
+            output = self.consistency*(prev_output)+(1-self.consistency)*output
+        return output
+
 class Unet(nn.Module):
 
     def __init__(self, in_chans, out_chans):
@@ -37,7 +48,7 @@ class Unet(nn.Module):
         self.up2 = Up(64, 32)
         self.up1 = Up(32, 16)
         self.last_block = nn.Conv2d(16, out_chans, kernel_size=1)
-        self.linear_block = nn.Linear(576, 576)
+#         self.linear_block = nn.Linear(576, 576)
     def norm(self, x):
         b, h, w = x.shape
         x = x.view(b, h * w)
@@ -49,20 +60,22 @@ class Unet(nn.Module):
     def unnorm(self, x, mean, std):
         return x * std + mean
 
-    def forward(self, input):
+    def forward(self, input, grappa):
         input, mean, std = self.norm(input)
-        input = input.unsqueeze(1)
+#         input = input.unsqueeze(1)
 #         print(input.shape)
+        grappa = (grappa-mean)/std
+        input = torch.cat([input.unsqueeze(1), grappa.unsqueeze(1)], dim = 1)
         d1 = self.first_block(input)
         d2 = self.down1(d1)
         d3 = self.down2(d2)
         d4 = self.down3(d3)
 #         print(d4.shape)
         d5 = self.down4(d4)
-        d5 = d5.reshape(-1,256,1,576)
-        c5 = self.linear_block(d5)
-        c5 = c5.reshape(-1,256,24,24)
-        u4 = self.up4(c5, d4)
+#         d5 = d5.reshape(-1,256,1,576)
+#         c5 = self.linear_block(d5)
+#         c5 = c5.reshape(-1,256,24,24)
+        u4 = self.up4(d5, d4)
         u3 = self.up3(u4, d3)
         u2 = self.up2(u3, d2)
         u1 = self.up1(u2, d1)
@@ -71,6 +84,7 @@ class Unet(nn.Module):
         output = self.unnorm(output, mean, std)
 
         return output
+
 
 
 class ConvBlock(nn.Module):
@@ -83,11 +97,9 @@ class ConvBlock(nn.Module):
             nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_chans),
             nn.ReLU(inplace=True),
-            DropoutLayer(0.2),
             nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_chans),
-            nn.ReLU(inplace=True),
-            DropoutLayer(0.2)
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
@@ -102,16 +114,13 @@ class Down(nn.Module):
         self.out_chans = out_chans
         self.layers = nn.Sequential(
             nn.MaxPool2d(2),
-            DropoutLayer(0.2),
-            ConvBlock(in_chans, out_chans),
-            DropoutLayer(0.2)
+            ConvBlock(in_chans, out_chans)
         )
-                
+
     def forward(self, x):
         return self.layers(x)
 
 class Up(nn.Module):
-
     def __init__(self, in_chans, out_chans, mid_chans = 32):
         super().__init__()
         self.in_chans = in_chans
@@ -119,7 +128,7 @@ class Up(nn.Module):
         self.mid_chans = mid_chans
         self.up = nn.ConvTranspose2d(in_chans, in_chans // 2, kernel_size=2, stride=2)
         self.att = Up_Attention(in_chans, in_chans // 2, mid_chans)
-        self.conv =nn.Sequential(ConvBlock(in_chans, out_chans), DropoutLayer(0.1))
+        self.conv =nn.Sequential(ConvBlock(in_chans, out_chans))
 
     def forward(self, x, concat_input):
         concat_input = self.att(x, concat_input)
