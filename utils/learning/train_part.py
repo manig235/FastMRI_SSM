@@ -122,7 +122,12 @@ def train(args):
                    chans=args.chans, 
                    sens_chans=args.sens_chans)
     model.to(device=device)
-
+    print(args.exp_dir)
+    if args.exp_dir is not None:
+        checkpoint = torch.load(Path('../result/Attention_6_10_7')/ 'checkpoints/best_model.pt', map_location='cpu')
+        print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+        model.load_state_dict(checkpoint['model'])
+    
     """
     # using pretrained parameter
     VARNET_FOLDER = "https://dl.fbaipublicfiles.com/fastMRI/trained_models/varnet/"
@@ -144,6 +149,8 @@ def train(args):
 
     best_val_loss = 1.
     start_epoch = 0
+
+
 
     
     train_loader = create_data_loaders(data_path = args.data_path_train, args = args, shuffle=True)
