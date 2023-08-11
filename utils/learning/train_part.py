@@ -8,9 +8,9 @@ from collections import defaultdict
 from utils.data.load_data import create_data_loaders
 from utils.common.utils import save_reconstructions, ssim_loss
 from utils.common.loss_function import SSIMLoss
-from utils.model.unet import Unet, UnetCascade
+from utils.model.unet import Unet, UnetCascade, AttentionGUnet
 
-def train_epoch(args, epoch, model, data_loader, optimizer, lr, loss_type):
+def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     model.train()
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
@@ -28,7 +28,7 @@ def train_epoch(args, epoch, model, data_loader, optimizer, lr, loss_type):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        lr.step()
+#         lr.step()
         
         total_loss += loss.item()
 
@@ -102,11 +102,11 @@ def train(args):
     torch.cuda.set_device(device)
     print('Current cuda device: ', torch.cuda.current_device())
     
-    model = UnetCascade(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = 6)
+    model = AttentionGUnet(in_chans = args.in_chans, out_chans = args.out_chans)
     model.to(device=device)
     loss_type = SSIMLoss().to(device=device)
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
-    lr = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=4, T_mult=2)
+#     lr = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=4, T_mult=2)
     
     best_val_loss = 1.
     start_epoch = 0
@@ -119,7 +119,7 @@ def train(args):
     for epoch in range(start_epoch, args.num_epochs):
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
         
-        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, lr, loss_type)
+        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
         val_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
 
         val_loss_log = np.append(val_loss_log, np.array([[epoch, val_loss]]), axis=0)

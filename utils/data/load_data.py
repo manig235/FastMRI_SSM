@@ -5,10 +5,11 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 class SliceData(Dataset):
-    def __init__(self, root, transform, input_key, target_key, forward=False):
+    def __init__(self, root, transform, input_key, grappa_key, target_key, forward=False):
         self.transform = transform
         self.input_key = input_key
         self.target_key = target_key
+        self.grappa_key = grappa_key
         self.forward = forward
         self.examples = []
 
@@ -41,8 +42,7 @@ class SliceData(Dataset):
             else:
                 target = hf[self.target_key][dataslice]
             attrs = dict(hf.attrs)
-        with h5py.File("/Data"+str(fname)[14:] , "r") as h:
-            grappa = h["image_grappa"][dataslice]
+            grappa = hf[self.grappa_key][dataslice]
         return self.transform(input, grappa, target, attrs, fname.name, dataslice)
 
 
@@ -57,6 +57,7 @@ def create_data_loaders(data_path, args, shuffle=False, isforward=False):
         root=data_path,
         transform=DataTransform(isforward, max_key_),
         input_key=args.input_key,
+        grappa_key = args.grappa_key,
         target_key=target_key_,
         forward = isforward
     )

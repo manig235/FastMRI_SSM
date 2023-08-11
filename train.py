@@ -24,6 +24,7 @@ def parse():
     parser.add_argument('--in-chans', type=int, default=1, help='Size of input channels for network')
     parser.add_argument('--out-chans', type=int, default=1, help='Size of output channels for network')
     parser.add_argument('--input-key', type=str, default='image_input', help='Name of input key')
+    parser.add_argument('--grappa-key', type=str, default='image_grappa', help='Name of grappa key')
     parser.add_argument('--target-key', type=str, default='image_label', help='Name of target key')
     parser.add_argument('--max-key', type=str, default='max', help='Name of max key in attributes')
     parser.add_argument('--seed', type=int, default=430, help='Fix random seed')
