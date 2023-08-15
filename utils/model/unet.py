@@ -1,25 +1,28 @@
+import random
 import torch
+import torchvision.transforms as transforms
 from torch import nn
 from torch.nn import functional as F
 
 class UnetCascade(nn.Module):
-    def __init__(self, in_chans, out_chans, num_of_unet, consistency = 0.4):
+    def __init__(self, in_chans, out_chans, num_of_unet):
         super().__init__()
         self.in_chans = in_chans
         self.out_chans = out_chans
         self.num_of_unet = num_of_unet
         self.unet_list = nn.ModuleList()
 #         self.batchNorm = nn.BatchNorm2d(1)
-        self.consistency = consistency
+#        self.consistency = consistency
         for i in range(num_of_unet):
-            self.unet_list.append(Unet(self.in_chans,self.out_chans))
+            self.unet_list.append(AttentionGUnet(self.in_chans,self.out_chans))
     def forward(self, input, grappa):
         output = input
         for unet in self.unet_list:
             prev_output = output
             output = unet(output, grappa)
-            output = self.consistency*(prev_output)+(1-self.consistency)*output
+#            output = self.consistency*(prev_output)+(1-self.consistency)*output
         return output
+
 class Unet(nn.Module): 
     """
     PyTorch implementation of a U-Net model.
@@ -33,8 +36,8 @@ class Unet(nn.Module):
         self,
         in_chans: int,
         out_chans: int,
-        chans: int = 32,
-        num_pool_layers: int = 4,
+        chans: int = 16,
+        num_pool_layers: int = 3,
         drop_prob: float = 0.0,
     ):
         """
@@ -221,9 +224,9 @@ class AttentionGUnet(nn.Module):
         self,
         in_chans: int,
         out_chans: int,
-        chans: int = 32,
+        chans: int = 16,
         num_pool_layers: int = 4,
-        drop_prob: float = 0.0,
+        drop_prob: float = 0.2,
     ):
         """
         Args:
@@ -240,21 +243,22 @@ class AttentionGUnet(nn.Module):
         self.chans = chans
         self.num_pool_layers = num_pool_layers
         self.drop_prob = drop_prob
-
+        
         self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, drop_prob)])
         ch = chans
         for _ in range(num_pool_layers - 1):
             self.down_sample_layers.append(ConvBlock(ch, ch * 2, drop_prob))
             ch *= 2
         self.conv = ConvBlock(ch, ch * 2, drop_prob)
-    
+        self.res_param = (nn.Parameter(torch.tensor(0.)))
+        self.avg_param = nn.Parameter(torch.tensor(0.))
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         self.up_attention = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
             self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
             self.up_conv.append(ConvBlock(ch * 2, ch, drop_prob))
-            self.up_attention.append(Up_Attention(ch * 2 , ch, 64))
+            self.up_attention.append(Up_Attention(ch * 2 , ch, 32))
             ch //= 2
 
         self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
@@ -264,7 +268,7 @@ class AttentionGUnet(nn.Module):
                 nn.Conv2d(ch, self.out_chans, kernel_size=1, stride=1),
             )
         )
-        self.up_attention.append(Up_Attention(ch * 2 , ch, 64))
+        self.up_attention.append(Up_Attention(ch * 2 , ch, 32))
     def norm(self, x):
         b, h, w = x.shape
         x = x.reshape(b, h * w)
@@ -285,15 +289,30 @@ class AttentionGUnet(nn.Module):
         """
 
         stack = []
+        image_input = image
         image, mean, std = self.norm(image)
         grappa = (grappa-mean)/std
-        output = torch.cat([image.unsqueeze(0), grappa.unsqueeze(0)], dim = 1)
+        
+        output = torch.cat([image.unsqueeze(1), grappa.unsqueeze(1)], dim = 1)
+        #image transform
+        randVal = random.random();
+        if randVal < 1/6:
+            output = transforms.functional.rotate(output, 90)
+        elif randVal < 2/6:
+            output = transforms.functional.rotate(output, 180)
+        elif randVal < 3/6:
+            output = transforms.functional.rotate(output, 270)
+        elif randVal < 4/6:
+            output = transforms.functional.hflip(output)
+        elif randVal < 5/6:
+            output = transforms.functional.vflip(output)
+        
         # apply down-sampling layers
         for layer in self.down_sample_layers:
             output = layer(output)
             stack.append(output)
             output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
-
+        
         output = self.conv(output)
         # apply up-sampling layers
         for transpose_conv, conv, up_att in zip(self.up_transpose_conv, self.up_conv, self.up_attention):
@@ -312,8 +331,26 @@ class AttentionGUnet(nn.Module):
 
             output = torch.cat([output, downsample_layer], dim=1)
             output = conv(output)
-        output = (output[:,0,...]+output[:,1,...] )/2
+#         print(output.shape)
+        self.avg = nn.Sigmoid()(self.avg_param)
+        output = output[:,0,...]*self.avg+output[:,1,...]*(1-self.avg)
+        
+        #image invert
+        if randVal < 1/6:
+            output = transforms.functional.rotate(output, 270)
+        elif randVal < 2/6:
+            output = transforms.functional.rotate(output, 180)
+        elif randVal < 3/6:
+            output = transforms.functional.rotate(output, 90)
+        elif randVal < 4/6:
+            output = transforms.functional.hflip(output)
+        elif randVal < 5/6:
+            output = transforms.functional.vflip(output)
+            
         output = self.unnorm(output, mean, std)
+#         print(self.res_param)
+        self.res = nn.Sigmoid()(self.res_param)
+        output = self.res * output + image_input * (1-self.res)
         return output.squeeze(1)
 
 
