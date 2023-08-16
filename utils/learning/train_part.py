@@ -31,16 +31,19 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
 
         output = model(kspace, mask)
         loss = loss_type(output, target, maximum)
-        optimizer.zero_grad()
+#         optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
+#         optimizer.step()
         total_loss += loss.item()
-
+        if (iter+1) % 4 == 0:
+#             print("GRAD")
+            optimizer.step()
+            optimizer.zero_grad()
         if iter % args.report_interval == 0:
             print(
                 f'Epoch = [{epoch:3d}/{args.num_epochs:3d}] '
                 f'Iter = [{iter:4d}/{len(data_loader):4d}] '
-                f'Loss = {loss.item():.4g} '
+                f'Loss = {total_loss/(iter+1):4g} '
                 f'Time = {time.perf_counter() - start_iter:.4f}s',
             )
             start_iter = time.perf_counter()
@@ -123,8 +126,8 @@ def train(args):
                    sens_chans=args.sens_chans)
     model.to(device=device)
     print(args.exp_dir)
-    if args.exp_dir is not None:
-        checkpoint = torch.load(Path('../result/Attention_6_10_7')/ 'checkpoints/best_model.pt', map_location='cpu')
+    if args.ckpt_dir is not None:
+        checkpoint = torch.load(args.ckpt_dir/ 'checkpoints/best_model.pt', map_location='cpu')
         print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
         model.load_state_dict(checkpoint['model'])
     
@@ -158,8 +161,11 @@ def train(args):
     
     val_loss_log = np.empty((0, 2))
     for epoch in range(start_epoch, args.num_epochs):
+        print(args.lr)
+
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')
-        
+
+        optimizer = torch.optim.Adam(model.parameters(), args.lr)
         train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, loss_type)
         val_loss, num_subjects, reconstructions, targets, inputs, val_time = validate(args, model, val_loader)
         
@@ -172,7 +178,7 @@ def train(args):
         val_loss = torch.tensor(val_loss).cuda(non_blocking=True)
         num_subjects = torch.tensor(num_subjects).cuda(non_blocking=True)
 
-
+        
         val_loss = val_loss / num_subjects
 
         is_new_best = val_loss < best_val_loss
@@ -183,7 +189,8 @@ def train(args):
             f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
             f'ValLoss = {val_loss:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
         )
-
+        if (epoch +1) %3 == 0:
+            args.lr = args.lr *0.8
         if is_new_best:
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NewRecord@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             start = time.perf_counter()

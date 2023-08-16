@@ -27,6 +27,7 @@ class SliceData(Dataset):
                 ]
         
         kspace_files = list(Path(root / "kspace").iterdir())
+        kspace_files = [fname for fname in kspace_files if 'acc8_204' in str(fname)]
 #         kspace_files = [path for path in kspace_files if not str(path).split('/')[-1] in output_list]
 #         print(kspace_files)
  #       kspace_files = [kspace_files[0], kspace_files[1]]

@@ -57,19 +57,18 @@ if __name__ == '__main__':
     model.eval()
     reconstructions = defaultdict(dict)
     iter = 0
-    args.output = args.output / args.type / Path("kspace") 
+    args.output = args.output / args.type / Path("image") 
 #     output_folder_list = os.listdir(args.output)
     prev_file = ''
     with torch.no_grad():
-        for (mask, kspace, target_kspace, _, _, fnames, slices) in forward_loader:
+        for (mask, kspace, _, _, fnames, slices) in forward_loader:
             kspace = kspace.cuda(non_blocking=True)
             mask = mask.cuda(non_blocking=True)
             if prev_file == '':
                 prev_file = fnames[0]
             output = model(kspace, mask).cpu().numpy()
-            output = np.array(output).astype('complex128')
-            output[...,0] = output[...,0] + output[...,1]*1j
-            output = output[...,0]
+#             output = np.array(output).astype('complex128')
+#             output[...,0] = output[...,0] + output[...,1]*1j
             iter+=1
             for i in range(output.shape[0]):
                 reconstructions[fnames[i]][int(slices[i])] = output[i]
@@ -77,11 +76,11 @@ if __name__ == '__main__':
                 if prev_file != fname: 
                     recons = np.stack([out for _, out in sorted(reconstructions[prev_file].items())])
                     print(prev_file)
-                    print(reconstructions[prev_file][0].shape)
+#                     print(reconstructions[prev_file][0].shape)
                     args.output.mkdir(exist_ok=True, parents=True) 
                     with h5py.File(args.output / Path(prev_file), 'w') as f:
                         print(str(args.output / Path(prev_file)))
-                        f.create_dataset('kspace_recons', data=recons)
+                        f.create_dataset('recons', data=recons)
                         image_path = Path('/Data')/args.type/Path('image/'+prev_file)
                         image_file = h5py.File(image_path, 'r')
                         f.create_dataset('target', data=image_file['image_label'])
@@ -94,7 +93,7 @@ if __name__ == '__main__':
         args.output.mkdir(exist_ok=True, parents=True)
         with h5py.File(args.output / Path(fname), 'w') as f:
             print(str(args.output / Path(fname)))
-            f.create_dataset('kspace_recons', data=recons)
+            f.create_dataset('recons', data=recons)
             image_path = Path('/Data')/args.type/Path('image/'+fname)
             image_file = h5py.File(image_path, 'r')
             f.create_dataset('target', data=image_file['image_label'])

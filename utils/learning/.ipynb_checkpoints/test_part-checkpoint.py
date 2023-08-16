@@ -37,7 +37,7 @@ def forward(args):
                    sens_chans=args.sens_chans)
     model.to(device=device)
     
-    checkpoint = torch.load(args.exp_dir / 'best_model.pt', map_location='cpu')
+    checkpoint = torch.load('../result/AttVarnet_8_8_6' / 'best_model.pt', map_location='cpu')
     print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
     model.load_state_dict(checkpoint['model'])
     

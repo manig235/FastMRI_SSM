@@ -232,7 +232,9 @@ class VarNet(nn.Module):
             [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
         )
         self.GFFB = AttentionBlock(20, 20)
-
+#         checkpoint = torch.load('../result' / 'best_model.pt', map_location='cpu')
+#         print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+#         model.load_state_dict(checkpoint['model'])
     # this k-space is not ma
     def forward(self, masked_kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         sens_maps = self.sens_net(masked_kspace, mask)
@@ -297,8 +299,10 @@ class VarAttention(nn.Module):
         for cascade in self.cascades:
             kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
             torch.cuda.empty_cache()
+        del sens_maps
 #        return kspace_pred
         image_pred = fastmri.ifft2c(kspace_pred)
+        del kspace_pred
         image_pred = fastmri.complex_abs(image_pred)
 #       image_pred = image_channel_converter(image_pred)
 #         height = image_pred.shape[-2]
@@ -349,10 +353,11 @@ class VarNetBlock(nn.Module):
     ) -> torch.Tensor:
         zero = torch.zeros(1, 1, 1, 1, 1).to(current_kspace)
         soft_dc = torch.where(mask, current_kspace - ref_kspace, zero) * self.dc_weight
+        del zero, mask, ref_kspace
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )
-
+        torch.cuda.empty_cache()
         return current_kspace - soft_dc - model_term
 
 class AttentionBlock(nn.Module):
