@@ -27,7 +27,7 @@ def parse():
     parser.add_argument('-n', '--net_name', type=Path, default=Path('test_varnet'), help='Name of network')
     parser.add_argument('-p', '--data_path', type=Path, default=Path('/Data/leaderboard/'), help='Directory of test data')
     parser.add_argument('-m', '--mask', type=str, default='acc4', choices=['acc4', 'acc8'], help='type of mask | acc4 or acc8')
-    parser.add_argument('-o', '--output', type=Path, default=Path('../reconstruct'))
+    parser.add_argument('-o', '--output', type=Path, default=Path('../reconstruct_cascade8'))
     parser.add_argument('-t', '--type', type=Path, default=Path('train'))
     parser.add_argument('--cascade', type=int, default=1, help='Number of cascades | Should be less than 12')
     parser.add_argument('--chans', type=int, default=9, help='Number of channels for cascade U-Net')
