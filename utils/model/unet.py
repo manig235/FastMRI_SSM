@@ -37,8 +37,8 @@ class Unet(nn.Module):
         in_chans: int,
         out_chans: int,
         chans: int = 16,
-        num_pool_layers: int = 3,
-        drop_prob: float = 0.0,
+        num_pool_layers: int = 5,
+        drop_prob: float = 0.2,
     ):
         """
         Args:

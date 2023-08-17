@@ -102,13 +102,13 @@ def train(args):
     torch.cuda.set_device(device)
     print('Current cuda device: ', torch.cuda.current_device())
     
-#    model = AttentionGUnet(in_chans = args.in_chans, out_chans = args.out_chans)
-    model = UnetCascade(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = 2)
+    model = AttentionGUnet(in_chans = args.in_chans, out_chans = args.out_chans)
+#     model = UnetCascade(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = 2)
     model.to(device=device)
     loss_type = SSIMLoss().to(device=device)
-    checkpoint = torch.load('../result/SAUnet_cascade_trans_mix_Res4/checkpoints/best_model.pt', map_location='cpu')
-    print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
-    model.load_state_dict(checkpoint['model'])
+#     checkpoint = torch.load('../result/SAUnet_cascade_trans_mix_Res4/checkpoints/best_model.pt', map_location='cpu')
+#     print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+#     model.load_state_dict(checkpoint['model'])
 #     lr = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=4, T_mult=2)
     
     best_val_loss = 1.
