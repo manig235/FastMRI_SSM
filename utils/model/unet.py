@@ -4,6 +4,16 @@ import torchvision.transforms as transforms
 from torch import nn
 from torch.nn import functional as F
 
+class LinearSum(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.alpha =nn.Parameter(torch.tensor(1.))
+        #self.beta = nn.Parameter(torch.tensor(1.))
+        self.grappa = nn.Parameter(torch.tensor(0.))
+    
+    def forward(self, input_1, input_2, grappa):
+        return (self.alpha*input_1 + (1-self.alpha)*input_2) + self.grappa*grappa
+        
 class UnetCascade(nn.Module):
     def __init__(self, in_chans, out_chans, num_of_unet):
         super().__init__()

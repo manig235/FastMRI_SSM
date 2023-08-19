@@ -8,7 +8,7 @@ from collections import defaultdict
 from utils.data.load_data import create_data_loaders
 from utils.common.utils import save_reconstructions, ssim_loss
 from utils.common.loss_function import SSIMLoss
-from utils.model.unet import Unet, UnetCascade, AttentionGUnet
+from utils.model.unet import LinearSum
 
 def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     model.train()
@@ -17,13 +17,14 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     total_loss = 0.
 
     for iter, data in enumerate(data_loader):
-        input, grappa, target, maximum, _, _ = data
-        input = input.cuda(non_blocking=True)
+        input_1, input_2, grappa, target, maximum, _, _ = data
+        input_1 = input_1.cuda(non_blocking=True)
+        input_2 = input_2.cuda(non_blocking=True)
         grappa = grappa.cuda(non_blocking = True)
         target = target.cuda(non_blocking=True)
         maximum = maximum.cuda(non_blocking=True)
 
-        output = model(input, grappa)
+        output = model(input_1, input_2, grappa)
         loss = loss_type(output, target, maximum)
         optimizer.zero_grad()
         loss.backward()
@@ -53,10 +54,11 @@ def validate(args, model, data_loader):
 
     with torch.no_grad():
         for iter, data in enumerate(data_loader):
-            input, grappa, target, _, fnames, slices = data
-            input = input.cuda(non_blocking=True)
+            input_1, input_2, grappa, target, _, fnames, slices = data
+            input_1 = input_1.cuda(non_blocking=True)
+            input_2 = input_2.cuda(non_blocking=True)
             grappa = grappa.cuda(non_blocking=True)
-            output = model(input, grappa)
+            output = model(input_1, input_2, grappa)
 
             for i in range(output.shape[0]):
                 reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()
@@ -102,7 +104,7 @@ def train(args):
     torch.cuda.set_device(device)
     print('Current cuda device: ', torch.cuda.current_device())
     
-    model = AttentionGUnet(in_chans = args.in_chans, out_chans = args.out_chans)
+    model = LinearSum()
 #     model = UnetCascade(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = 2)
     model.to(device=device)
     loss_type = SSIMLoss().to(device=device)
@@ -120,8 +122,8 @@ def train(args):
 
     val_loss_log = np.empty((0, 2))
     for epoch in range(start_epoch, args.num_epochs):
-        if epoch % 20 == 0 and epoch>0:
-            args.lr = args.lr * 0.8
+#        if epoch % 20 == 0 and epoch>0:
+#            args.lr = args.lr * 0.8
         optimizer = torch.optim.Adam(model.parameters(), args.lr)
         print(args.lr)
         print(f'Epoch #{epoch:2d} ............... {args.net_name} ...............')

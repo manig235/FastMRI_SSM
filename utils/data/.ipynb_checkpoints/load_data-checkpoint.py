@@ -12,7 +12,8 @@ class SliceData(Dataset):
         self.grappa_key = grappa_key
         self.forward = forward
         self.examples = []
-
+        self.examples_2 = []
+        
         files = list(Path(root).iterdir())
         for fname in sorted(files):
             num_slices = self._get_metadata(fname)
@@ -20,7 +21,14 @@ class SliceData(Dataset):
             self.examples += [
                 (fname, slice_ind) for slice_ind in range(num_slices)
             ]
+        root2 = str(root).replace('reconstruct', 'reconstruct_cascade8')
+        files_2 = list(Path(root2).iterdir())
+        for fname in sorted(files_2):
+            num_slices = self._get_metadata(fname)
 
+            self.examples_2 += [
+                (fname, slice_ind) for slice_ind in range(num_slices)
+            ]
     def _get_metadata(self, fname):
         with h5py.File(fname, "r") as hf:
             num_slices = hf[self.input_key].shape[0]
@@ -31,19 +39,24 @@ class SliceData(Dataset):
 
     def __getitem__(self, i):
         fname, dataslice = self.examples[i]
+        fname_2, dataslice = self.examples_2[i]
 #         if not self.forward:
 #             base_path = Path('/Data/train/image')
 #         else:
 #             base_path = Path('/Data/val/image')
         with h5py.File(fname, "r") as hf:
-            input = hf[self.input_key][dataslice]
+            input_1 = hf[self.input_key][dataslice]
+#            print(fname)
             if self.forward:
                 target = -1
             else:
                 target = hf[self.target_key][dataslice]
             attrs = dict(hf.attrs)
             grappa = hf[self.grappa_key][dataslice]
-        return self.transform(input, grappa, target, attrs, fname.name, dataslice)
+        with h5py.File(fname_2, "r") as hf:
+            input_2= hf[self.input_key][dataslice]
+#            print(fname_2)
+        return self.transform(input_1, input_2,  grappa, target, attrs, fname.name, dataslice)
 
 
 def create_data_loaders(data_path, args, shuffle=False, isforward=False):
