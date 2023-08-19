@@ -231,6 +231,7 @@ class VarNet(nn.Module):
         self.cascades = nn.ModuleList(
             [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
         )
+        self.GFFB = AttentionBlock(20, 20)
 
     # this k-space is not ma
     def forward(self, masked_kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:

@@ -54,6 +54,8 @@ if __name__ == '__main__':
     model.to(device=device)
     
     checkpoint = torch.load(args.exp_dir / 'best_model.pt', map_location='cpu')
+    print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+    model.load_state_dict(checkpoint['model'])
     forward_loader = create_data_loaders(data_path = '/Data'/args.type, args = args, isforward = True)
     model.eval()
     reconstructions = defaultdict(dict)
