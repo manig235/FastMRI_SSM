@@ -224,9 +224,9 @@ class AttentionGUnet(nn.Module):
         self,
         in_chans: int,
         out_chans: int,
-        chans: int = 16,
+        chans: int = 32,
         num_pool_layers: int = 4,
-        drop_prob: float = 0.2,
+        drop_prob: float = 0.1,
     ):
         """
         Args:

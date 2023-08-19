@@ -15,7 +15,7 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
     total_loss = 0.
-
+    momentum = 0.99
     for iter, data in enumerate(data_loader):
         input, grappa, target, maximum, _, _ = data
         input = input.cuda(non_blocking=True)
@@ -24,12 +24,19 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
         maximum = maximum.cuda(non_blocking=True)
 
         output = model(input, grappa)
+        pretrained_dict = model.state_dict()
+        res_param_prev = pretrained_dict['res_param'].item()
+#      print(pretrained_dict['res_param'])
         loss = loss_type(output, target, maximum)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 #         lr.step()
-        
+        pretrained_dict = model.state_dict()
+        res_param_cur = pretrained_dict['res_param'].item()
+#        print(pretrained_dict['res_param'])
+        pretrained_dict['res_param'] = torch.tensor(res_param_cur*(1-momentum) + res_param_prev*momentum)
+        model.load_state_dict(pretrained_dict)
         total_loss += loss.item()
 
         if iter % args.report_interval == 0:
