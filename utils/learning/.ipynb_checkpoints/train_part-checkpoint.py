@@ -17,13 +17,14 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     total_loss = 0.
     momentum = 0.99
     for iter, data in enumerate(data_loader):
-        input, grappa, target, maximum, _, _ = data
-        input = input.cuda(non_blocking=True)
+        input_1, input_2, grappa, target, maximum, _, _ = data
+        input_1 = input_1.cuda(non_blocking=True)
+        input_2 = input_2.cuda(non_blocking=True)
         grappa = grappa.cuda(non_blocking = True)
         target = target.cuda(non_blocking=True)
         maximum = maximum.cuda(non_blocking=True)
 
-        output = model(input, grappa)
+        output = model(input_1, input_2, grappa)
         pretrained_dict = model.state_dict()
         res_param_prev = pretrained_dict['res_param'].item()
 #      print(pretrained_dict['res_param'])
@@ -60,10 +61,12 @@ def validate(args, model, data_loader):
 
     with torch.no_grad():
         for iter, data in enumerate(data_loader):
-            input, grappa, target, _, fnames, slices = data
-            input = input.cuda(non_blocking=True)
+            input_1, input_2, grappa, target, maximum, _, _ = data
+            input_1 = input_1.cuda(non_blocking=True)
+            input_2 = input_2.cuda(non_blocking=True)
+            grappa = grappa.cuda(non_blocking = True)
             grappa = grappa.cuda(non_blocking=True)
-            output = model(input, grappa)
+            output = model(input_1, input_2, grappa)
 
             for i in range(output.shape[0]):
                 reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()

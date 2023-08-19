@@ -251,14 +251,14 @@ class AttentionGUnet(nn.Module):
             ch *= 2
         self.conv = ConvBlock(ch, ch * 2, drop_prob)
         self.res_param = (nn.Parameter(torch.tensor(0.)))
-        self.avg_param = nn.Parameter(torch.tensor(0.))
+#        self.avg_param = nn.Parameter(torch.tensor(0.))
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         self.up_attention = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
             self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
             self.up_conv.append(ConvBlock(ch * 2, ch, drop_prob))
-            self.up_attention.append(Up_Attention(ch * 2 , ch, 32))
+            self.up_attention.append(Up_Attention(ch * 2 , ch, 64))
             ch //= 2
 
         self.up_transpose_conv.append(TransposeConvBlock(ch * 2, ch))
@@ -268,7 +268,7 @@ class AttentionGUnet(nn.Module):
                 nn.Conv2d(ch, self.out_chans, kernel_size=1, stride=1),
             )
         )
-        self.up_attention.append(Up_Attention(ch * 2 , ch, 32))
+        self.up_attention.append(Up_Attention(ch * 2 , ch, 64))
     def norm(self, x):
         b, h, w = x.shape
         x = x.reshape(b, h * w)
@@ -280,7 +280,7 @@ class AttentionGUnet(nn.Module):
     def unnorm(self, x, mean, std):
         return x * std + mean
 
-    def forward(self, image: torch.Tensor, grappa) -> torch.Tensor:
+    def forward(self, image_1: torch.Tensor, image_2, grappa) -> torch.Tensor:
         """
         Args:
             image: Input 4D tensor of shape `(N, in_chans, H, W)`.
@@ -289,11 +289,11 @@ class AttentionGUnet(nn.Module):
         """
 
         stack = []
-        image_input = image
-        image, mean, std = self.norm(image)
+        image_input = image_1
+        image, mean, std = self.norm(image_1)
         grappa = (grappa-mean)/std
-        
-        output = torch.cat([image.unsqueeze(1), grappa.unsqueeze(1)], dim = 1)
+        image_2 = (image_2 - mean)/std
+        output = torch.cat([image.unsqueeze(1), image_2.unsqueeze(1), grappa.unsqueeze(1)], dim = 1)
         #image transform
         randVal = random.random();
         if randVal < 1/6:
@@ -332,8 +332,8 @@ class AttentionGUnet(nn.Module):
             output = torch.cat([output, downsample_layer], dim=1)
             output = conv(output)
 #         print(output.shape)
-        self.avg = nn.Sigmoid()(self.avg_param)
-        output = output[:,0,...]*self.avg+output[:,1,...]*(1-self.avg)
+#        self.avg = nn.Sigmoid()(self.avg_param)
+#        output = output[:,0,...]*self.avg+output[:,1,...]*(1-self.avg)
         
         #image invert
         if randVal < 1/6:

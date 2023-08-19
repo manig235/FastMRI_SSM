@@ -16,12 +16,13 @@ class DataTransform:
     def __init__(self, isforward, max_key):
         self.isforward = isforward
         self.max_key = max_key
-    def __call__(self, input, grappa, target, attrs, fname, slice):
-        input = to_tensor(input)
+    def __call__(self, input_1, input_2, grappa, target, attrs, fname, slice):
+        input_1 = to_tensor(input_1)
+        input_2 = to_tensor(input_2)
         if not self.isforward:
             target = to_tensor(target)
             maximum = attrs[self.max_key]
         else:
             target = -1
             maximum = -1
-        return input, grappa, target, maximum, fname, slice
+        return input_1, input_2, grappa, target, maximum, fname, slice
