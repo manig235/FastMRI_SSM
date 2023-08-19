@@ -15,13 +15,14 @@ class SliceData(Dataset):
         self.examples_2 = []
         
         files = list(Path(root).iterdir())
+#        files = [files[0]]
         for fname in sorted(files):
             num_slices = self._get_metadata(fname)
 
             self.examples += [
                 (fname, slice_ind) for slice_ind in range(num_slices)
             ]
-        root2 = str(root).replace('reconstruct', 'reconstruct_cascade8')
+        root2 = str(root).replace('reconstruct_6_10_7', 'reconstruct_cascade8')
         files_2 = list(Path(root2).iterdir())
         for fname in sorted(files_2):
             num_slices = self._get_metadata(fname)

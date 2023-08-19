@@ -28,6 +28,8 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
         pretrained_dict = model.state_dict()
         res_param_prev = pretrained_dict['res_param'].item()
 #      print(pretrained_dict['res_param'])
+#        print(output.shape)
+#        print(target.shape)
         loss = loss_type(output, target, maximum)
         optimizer.zero_grad()
         loss.backward()
@@ -61,17 +63,16 @@ def validate(args, model, data_loader):
 
     with torch.no_grad():
         for iter, data in enumerate(data_loader):
-            input_1, input_2, grappa, target, maximum, _, _ = data
+            input_1, input_2, grappa, target, maximum, fnames, slices = data
             input_1 = input_1.cuda(non_blocking=True)
             input_2 = input_2.cuda(non_blocking=True)
             grappa = grappa.cuda(non_blocking = True)
-            grappa = grappa.cuda(non_blocking=True)
             output = model(input_1, input_2, grappa)
 
             for i in range(output.shape[0]):
                 reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()
                 targets[fnames[i]][int(slices[i])] = target[i].numpy()
-                inputs[fnames[i]][int(slices[i])] = input[i].cpu().numpy()
+                inputs[fnames[i]][int(slices[i])] = input_1[i].cpu().numpy()
 
     for fname in reconstructions:
         reconstructions[fname] = np.stack(

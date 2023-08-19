@@ -346,12 +346,12 @@ class AttentionGUnet(nn.Module):
             output = transforms.functional.hflip(output)
         elif randVal < 5/6:
             output = transforms.functional.vflip(output)
-            
+        output = output.squeeze(1)
         output = self.unnorm(output, mean, std)
 #         print(self.res_param)
         self.res = nn.Sigmoid()(self.res_param)
         output = self.res * output + image_input * (1-self.res)
-        return output.squeeze(1)
+        return output
 
 
 """
