@@ -35,8 +35,8 @@ batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작�
 다음 4개의 코드를 실행하여 2개의 Varnet의 reconsturction 결과를 얻을 수 있습니다. 이 코드를 실행하면 repo 폴더 바깥에 reconsturct폴더가 생성됩니다.
 <pre><code>python testfile_reconstruct.py -n AttVarnet_cascade8 --cascade 8 -o '../reconstruct_cascade8'</code></pre>
 <pre><code>python testfile_reconstruct.py -n AttVarnet_cascade8 --cascade 8 -o '../reconstruct_cascade8' --type val</code></pre>
-<pre><code>python testfile_reconstruct.py -n AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7'</code></pre>
-<pre><code>python testfile_reconstruct.py -n AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7' --type val</code></pre>
+<pre><code>python testfile_reconstruct.py -n Attention_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7'</code></pre>
+<pre><code>python testfile_reconstruct.py -n Attention_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7' --type val</code></pre>
 
 reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.
 
