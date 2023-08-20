@@ -38,8 +38,8 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
         if args.last_train:
             if (iter+1) % 4 == 0:
 #             print("GRAD")
-            optimizer.step()
-            optimizer.zero_grad()
+                optimizer.step()
+                optimizer.zero_grad()
         else:
             optimizer.step()
             optimizer.zero_grad()

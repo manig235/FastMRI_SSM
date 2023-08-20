@@ -3,7 +3,7 @@ from pathlib import Path
 import h5py
 import os, sys
 import torch
-from utils.common.utils import kspace2image
+#from utils.common.utils import kspace2image
 if os.getcwd() + '/utils/model/' not in sys.path:
     sys.path.insert(1, os.getcwd() + '/utils/model/')
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 #     output_folder_list = os.listdir(args.output)
     prev_file = ''
     with torch.no_grad():
-        for (mask, kspace, target_kspace, _, _, fnames, slices) in forward_loader:
+        for (mask, kspace, _, _, fnames, slices) in forward_loader:
             if prev_file == '':
                 prev_file = fnames[0]
             kspace = kspace.cuda(non_blocking=True)
@@ -92,11 +92,11 @@ if __name__ == '__main__':
                     f.create_dataset('grappa', data = image_file['image_grappa'])
                     f.attrs.create("max", attrs["max"])
                     f.attrs.create("norm", attrs["norm"])
-#                 print(reconstructions.keys())
+                print(reconstructions.keys())
                 reconstructions.pop(prev_file, None)
                 prev_file = fnames[0]
-#                 print(reconstructions.keys())
-#         print("writing last reconstruction")
+                print(reconstructions.keys())
+        print("writing last reconstruction")
         for fname in reconstructions:
             reconstructions[fname] = np.stack(
                 [out for _, out in sorted(reconstructions[fname].items())]
@@ -114,3 +114,41 @@ if __name__ == '__main__':
                 f.create_dataset('grappa', data = image_file['image_grappa'])
                 f.attrs.create("max", attrs["max"])
                 f.attrs.create("norm", attrs["norm"])
+        """
+            if prev_file == '':
+                prev_file = fnames[0]
+            output = model(kspace, mask).cpu().numpy()
+            output = np.array(output).astype('complex128')
+            output[...,0] = output[...,0] + output[...,1]*1j
+            output = output[...,0]
+            iter+=1
+            for i in range(output.shape[0]):
+                reconstructions[fnames[i]][int(slices[i])] = output[i]
+                fname = fnames[i]
+                if prev_file != fname: 
+                    recons = np.stack([out for _, out in sorted(reconstructions[prev_file].items())])
+                    print(prev_file)
+                    print(reconstructions[prev_file][0].shape)
+                    args.output.mkdir(exist_ok=True, parents=True) 
+                    with h5py.File(args.output / Path(prev_file), 'w') as f:
+                        print(str(args.output / Path(prev_file)))
+                        f.create_dataset('kspace_recons', data=recons)
+                        image_path = Path('/Data')/args.type/Path('image/'+prev_file)
+                        image_file = h5py.File(image_path, 'r')
+                        f.create_dataset('target', data=image_file['image_label'])
+                        f.create_dataset('input', data = image_file['image_input'])
+                    reconstructions.pop(prev_file, None)
+                    print(reconstructions.keys())
+                    prev_file = fname
+        recons = np.stack([out for _, out in sorted(reconstructions[fname].items())])
+        print(fname)
+        args.output.mkdir(exist_ok=True, parents=True)
+        with h5py.File(args.output / Path(fname), 'w') as f:
+            print(str(args.output / Path(fname)))
+            f.create_dataset('kspace_recons', data=recons)
+            image_path = Path('/Data')/args.type/Path('image/'+fname)
+            image_file = h5py.File(image_path, 'r')
+            f.create_dataset('target', data=image_file['image_label'])
+            f.create_dataset('input', data = image_file['image_input'])
+        reconstructions.pop(fname, None)
+        """
