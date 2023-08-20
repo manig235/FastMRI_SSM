@@ -27,8 +27,8 @@ SSM Team FastMRI result
 batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작동하도록 코드를 작성하였으며, train_part.py의 train_epoch에서 확인 가능합니다.
 
 ### Upscaling Attention Unet training
-학습을 진행하기에 앞서 Varnet의 test file과 validation file로부터 reconstruction을 수행하여야 합니다. (Varnet_Attention branch에서 수행하여야 합니다.)
-정상적으로 작동하기 위해서는 repo 폴더 바깥의 result 폴더에 AttVarnet_cascade8, Attention_6_10_7_final 폴더가 있어야 합니다. 이 폴더들은 pushing_result branch에 있으므로, 이 폴더를 복사하여 사용하시면 됩니다.
+학습을 진행하기에 앞서 Varnet의 test file과 validation file로부터 reconstruction을 수행하여야 합니다. (Varnet_Attention branch에서 수행하여야 합니다.)\
+정상적으로 작동하기 위해서는 repo 폴더 바깥의 result 폴더에 AttVarnet_cascade8, Attention_6_10_7_final 폴더가 있어야 합니다. 이 폴더들은 pushing_result branch에 있으므로, 이 폴더를 복사하여 사용하시면 됩니다.\
 <pre><code>cp -r ./result/AttVarnet_cascade8 ../result</code></pre>
 <pre><code>cp -r ./result/Attention_6_10_7_final ../result</code></pre>
 
@@ -38,7 +38,7 @@ batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작�
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7'</code></pre>
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7' --type val</code></pre>
 
-reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.
+reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.\
 
 38 epoch 학습을 진행하였습니다.
 <pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
@@ -47,7 +47,7 @@ reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니�
 ##	Evaluation
 
 ###	Varnet reconstruction 
-Varnet_Attention branch에서 leaderboard reconstruction을 수행합니다. (8,9,4), (6,10,7) 조합에 대해서 각각 수행해야 합니다.
+Varnet_Attention branch에서 leaderboard reconstruction을 수행합니다. (8,9,4), (6,10,7) 조합에 대해서 각각 수행해야 합니다.\
 
 <pre><code>python reconstruct.py -n AttVarnet_cascade8</code></pre>
 <pre><code>python reconstruct.py -n Attention_6_10_7_final</code></pre>
