@@ -117,9 +117,12 @@ def train(args):
 #     model = UnetCascade(in_chans = args.in_chans, out_chans = args.out_chans, num_of_unet = 2)
     model.to(device=device)
     loss_type = SSIMLoss().to(device=device)
-#     checkpoint = torch.load('../result/SAUnet_cascade_trans_mix_Res4/checkpoints/best_model.pt', map_location='cpu')
-#     print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
-#     model.load_state_dict(checkpoint['model'])
+    if args.ckpt_dir is not None:
+        checkpoint = torch.load(args.ckpt_dir /'checkpoints/best_model.pt', map_location='cpu')
+        print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
+        print(checkpoint['model']['res_param'])
+        checkpoint['model']['res_param'] = (torch.tensor(1.))
+        model.load_state_dict(checkpoint['model'])
 #     lr = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=4, T_mult=2)
     
     best_val_loss = 1.
