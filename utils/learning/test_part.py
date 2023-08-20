@@ -4,7 +4,7 @@ import torch
 from collections import defaultdict
 from utils.common.utils import save_reconstructions
 from utils.data.load_data import create_data_loaders
-from utils.model.unet import Unet
+from utils.model.unet import AttentionGUnet
 
 def test(args, model, data_loader):
     model.eval()
@@ -37,13 +37,13 @@ def forward(args):
     torch.cuda.set_device(device)
     print ('Current cuda device ', torch.cuda.current_device())
 
-    model = Unet(in_chans = args.in_chans, out_chans = args.out_chans)
+    model = AttentionGUnet(in_chans = args.in_chans, out_chans = args.out_chans)
     model.to(device=device)
     
     checkpoint = torch.load(args.exp_dir / 'best_model.pt', map_location='cpu')
     print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
     model.load_state_dict(checkpoint['model'])
     
-    forward_loader = create_data_loaders(data_path = args.data_path, data_path_2 = args.data_path_2 args = args, isforward = True)
+    forward_loader = create_data_loaders(data_path = args.data_path, data_path_2 = args.data_path_2, args = args, isforward = True)
     reconstructions, inputs = test(args, model, forward_loader)
     save_reconstructions(reconstructions, args.forward_dir, inputs=inputs)
