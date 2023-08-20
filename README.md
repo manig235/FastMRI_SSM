@@ -4,7 +4,7 @@ SSM Team FastMRI result
 ## Branch
 - Varnet_Attention
 - recons_unet
-- pushing_reuslt
+- pushing_result
   
 ## Training
 ### Attention Varnet training (Varnet_Attention branch)
@@ -41,7 +41,7 @@ batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작�
 reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.\
 
 38 epoch 학습을 진행하였습니다.\
-<pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --last-train 1 --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
+<pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
 이 코드를 실행하면 result에 Unet_32_1_high가 생성됩니다.
 
 ##	Evaluation
@@ -52,8 +52,12 @@ Varnet_Attention branch에서 leaderboard reconstruction을 수행합니다. (8,
 <pre><code>python reconstruct.py -n AttVarnet_cascade8</code></pre>
 <pre><code>python reconstruct.py -n Attention_6_10_7_final</code></pre>
 ###	Upscaling Attention Unet restruction & forwarding
-3	Evaluation
-3.1	
+recons_unet branch에서 최종 leaderboard reconstruction을 수행합니다. \
+Grappa image는 /Data/leaderboard/ 폴더에서 가져옵니다. 필요한 경우 {grappa_path}의 자리에 grappa_image를 추가하면 됩니다.
+<pre><code></code>python reconstruct.py --path_data '../result/Attention_6_10_7_final/reconstructions_leaderboard/' --path_data_2 '../result/AttVarnet_cascade8/reconstructions_leaderboard/' --path_grappa {grappa_path} -n Unet_32_1_high --in-chans 3 --out-chans 1 --grappa-key image_grappa --input-key 'reconstruction'</code></pre>
+
+최종 SSIM 값은 leaderboard_eval을 실행하여 얻을 수 있습니다.
+<pre><code></code>python leaderboard_eval.py -yp '../result/Unet_32_1_high/reconstructions_leaderboard/'</code></pre>
 
 ## Reference
 [1] Zbontar, J.*, Knoll, F.*, Sriram, A.*, Murrell, T., Huang, Z., Muckley, M. J., ... & Lui, Y. W. (2018). fastMRI: An Open Dataset and Benchmarks for Accelerated MRI. arXiv preprint arXiv:1811.08839.
