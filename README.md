@@ -5,6 +5,7 @@ SSM Team FastMRI result
 - Varnet_Attention
 - recons_unet
 - pushing_reuslt
+  
 ## Training
 ### Attention Varnet training (Varnet_Attention branch)
 #### (8,9,4) Varnet training
@@ -27,21 +28,30 @@ batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작�
 
 ### Upscaling Attention Unet training
 학습을 진행하기에 앞서 Varnet의 test file과 validation file로부터 reconstruction을 수행하여야 합니다. (Varnet_Attention branch에서 수행하여야 합니다.)\
+정상적으로 작동하기 위해서는 repo 폴더 바깥의 result 폴더에 AttVarnet_cascade8, Attention_6_10_7_final 폴더가 있어야 합니다. 이 폴더들은 pushing_result branch에 있으므로, 이 폴더를 복사하여 사용하시면 됩니다.
+<pre><code>cp -r ./result/AttVarnet_cascade8 ../result</code></pre>
+<pre><code>cp -r ./result/Attention_6_10_7_final ../result</code></pre>
+
 다음 4개의 코드를 실행하여 2개의 Varnet의 reconsturction 결과를 얻을 수 있습니다. 이 코드를 실행하면 repo 폴더 바깥에 reconsturct폴더가 생성됩니다.\
-정상적으로 작동하기 위해서는 repo 폴더 바깥의 result 폴더에 AttVarnet_cascade8, Attention_6_10_7_final 폴더가 있어야 합니다. 이 폴더들은 pushing_result branch에 있으므로, 그대로 복사하여 사용하길 권장드립니다.
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_cascade8 --cascade 8 -o '../reconstruct_cascade8'</code></pre>
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_cascade8 --cascade 8 -o '../reconstruct_cascade8' --type val</code></pre>
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7'</code></pre>
 <pre><code>python testfile_reconstruct.py -n "AttVarnet_6_10_7_final --cascade 6 --chans 10 --sens_chans 7 -o '../reconstruct_6_10_7' --type val</code></pre>
-38 epoch 학습을 진행하였습니다.
-<pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --last-train 1 --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 100 -r 200 -n Unet_32_1_fine -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
 
-2	Forwarding
-2.1	Varnet forwarding  
-2.1.1	(8,9,4) Varnet forwarding
+reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.\
 
-2.1.2	(6,10,7) Varnet forwarding
-2.2	Upscaling Attention Unet forwarding
+38 epoch 학습을 진행하였습니다.\
+<pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --last-train 1 --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
+이 코드를 실행하면 result에 Unet_32_1_high가 생성됩니다.
+
+##	Evaluation
+
+###	Varnet reconstruction 
+Varnet_Attention branch에서 leaderboard reconstruction을 수행합니다. (8,9,4), (6,10,7) 조합에 대해서 각각 수행해야 합니다.
+
+<pre><code>python reconstruct.py -n AttVarnet_cascade8</code></pre>
+<pre><code>python reconstruct.py -n Attention_6_10_7_final</code></pre>
+###	Upscaling Attention Unet restruction & forwarding
 3	Evaluation
 3.1	
 
