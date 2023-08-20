@@ -12,13 +12,15 @@ def test(args, model, data_loader):
     inputs = defaultdict(dict)
     
     with torch.no_grad():
-        for (input, _, _, fnames, slices) in data_loader:
-            input = input.cuda(non_blocking=True)
-            output = model(input)
+        for (input_1, input_2, grappa, _, _, fnames, slices) in data_loader:
+            input_1 = input_1.cuda(non_blocking=True)
+            input_2 = input_2.cuda(non_blocking=True)
+            grappa = grappa.cuda(non_blocking=True)
+            output = model(input_1, input_2, grappa)
 
             for i in range(output.shape[0]):
                 reconstructions[fnames[i]][int(slices[i])] = output[i].cpu().numpy()
-                inputs[fnames[i]][int(slices[i])] = input[i].cpu().numpy()
+                inputs[fnames[i]][int(slices[i])] = input_1[i].cpu().numpy()
 
     for fname in reconstructions:
         reconstructions[fname] = np.stack(
@@ -44,6 +46,6 @@ def forward(args):
     print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
     model.load_state_dict(checkpoint['model'])
     
-    forward_loader = create_data_loaders(data_path = args.data_path, data_path_2 = args.data_path_2, args = args, isforward = True)
+    forward_loader = create_data_loaders(data_path = args.data_path, data_path_2 = args.data_path_2, data_path_grappa = args.data_path_grappa, args = args, isforward = True)
     reconstructions, inputs = test(args, model, forward_loader)
     save_reconstructions(reconstructions, args.forward_dir, inputs=inputs)

@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 class SliceData(Dataset):
-    def __init__(self, root, root2, transform, input_key, grappa_key, target_key, forward=False):
+    def __init__(self, root, root2, root_grappa, transform, input_key, grappa_key, target_key, forward=False):
         self.transform = transform
         self.input_key = input_key
         self.target_key = target_key
@@ -13,7 +13,8 @@ class SliceData(Dataset):
         self.forward = forward
         self.examples = []
         self.examples_2 = []
-        
+        self.examples_g = []
+        self.rg = root_grappa
         files = list(Path(root).iterdir())
 #        files = [files[0]]
         for fname in sorted(files):
@@ -30,9 +31,21 @@ class SliceData(Dataset):
             self.examples_2 += [
                 (fname, slice_ind) for slice_ind in range(num_slices)
             ]
+        if root_grappa is not None:
+            files_g = list(Path(root_grappa).iterdir())
+            for fname in sorted(files_g):
+                num_slices = self._get_metadata(fname)
+
+                self.examples_g += [
+                    (fname, slice_ind) for slice_ind in range(num_slices)
+                ]
     def _get_metadata(self, fname):
+#         print(fname)
         with h5py.File(fname, "r") as hf:
-            num_slices = hf[self.input_key].shape[0]
+            try:
+                num_slices = hf[self.input_key].shape[0]
+            except:
+                num_slices = hf[self.grappa_key].shape[0]
         return num_slices
 
     def __len__(self):
@@ -41,6 +54,8 @@ class SliceData(Dataset):
     def __getitem__(self, i):
         fname, dataslice = self.examples[i]
         fname_2, dataslice = self.examples_2[i]
+        if self.rg is not None:
+            fname_g, dataslice = self.examples_g[i]
 #         if not self.forward:
 #             base_path = Path('/Data/train/image')
 #         else:
@@ -53,14 +68,18 @@ class SliceData(Dataset):
             else:
                 target = hf[self.target_key][dataslice]
             attrs = dict(hf.attrs)
-            grappa = hf[self.grappa_key][dataslice]
+            if self.rg is None:
+                grappa = hf[self.grappa_key][dataslice]
         with h5py.File(fname_2, "r") as hf:
             input_2= hf[self.input_key][dataslice]
 #            print(fname_2)
+        if self.rg is not None:
+            with h5py.File(fname_g, "r") as hf:
+                grappa = hf[self.grappa_key][dataslice]
         return self.transform(input_1, input_2,  grappa, target, attrs, fname.name, dataslice)
 
 
-def create_data_loaders(data_path, data_path_2, args, shuffle=False, isforward=False):
+def create_data_loaders(data_path, data_path_2, args, shuffle=False, isforward=False, data_path_grappa = None):
     if isforward == False:
         max_key_ = args.max_key
         target_key_ = args.target_key
@@ -70,6 +89,7 @@ def create_data_loaders(data_path, data_path_2, args, shuffle=False, isforward=F
     data_storage = SliceData(
         root=data_path,
         root2 = data_path_2,
+        root_grappa = data_path_grappa,
         transform=DataTransform(isforward, max_key_),
         input_key=args.input_key,
         grappa_key = args.grappa_key,

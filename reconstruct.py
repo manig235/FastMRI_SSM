@@ -10,11 +10,12 @@ def parse():
     parser.add_argument('-n', '--net_name', type=Path, default='test_Unet', help='Name of network')
     parser.add_argument('-p', '--path_data', type=Path, default='/Data/leaderboard/', help='Directory of test data')
     parser.add_argument('-p2', '--path_data_2', type=Path, default='/Data/leaderboard/', help='Directory of test data')
+    parser.add_argument('-pg', '--path_grappa', type=Path, default='/Data/leaderboard/', help='Directory of test data')
     parser.add_argument('-m', '--mask', type=str, default='acc4', choices=['acc4', 'acc8'], help='type of mask | acc4 or acc8')
     
     parser.add_argument('--in-chans', type=int, default=1, help='Size of input channels for network')
     parser.add_argument('--out-chans', type=int, default=1, help='Size of output channels for network')
-    parser.add_argument("--input_key", type=str, default='image_input', help='Name of input key')
+    parser.add_argument("--input-key", type=str, default='image_input', help='Name of input key')
     parser.add_argument("--grappa-key", type=str, default='grappa', help='Name of input key')
 
     args = parser.parse_args()
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     # acc4
     args.data_path = args.path_data / "acc4"
     args.data_path_2 = args.path_data_2 / "acc4"
+    args.data_path_grappa = args.path_grappa / "acc4" / "image"
     args.forward_dir = '../result' / args.net_name / 'reconstructions_leaderboard' / "acc4"
     print(args.forward_dir)
     forward(args)
@@ -35,6 +37,7 @@ if __name__ == '__main__':
     # acc8
     args.data_path = args.path_data / "acc8"
     args.data_path_2 = args.path_data_2 / "acc8"
+    args.data_path_grappa = args.path_grappa / "acc8" / "image"
     args.forward_dir = '../result' / args.net_name / 'reconstructions_leaderboard' / "acc8"
     print(args.forward_dir)
     forward(args)
