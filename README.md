@@ -13,7 +13,7 @@ SSM Team FastMRI result
 첫번째 3 epoch 학습:
 <pre><code>python train.py --cascade 8 -n Attention_8 -e 3</code></pre>
 두번째 10 epoch 학습:
-<pre><code>python train.py –cascade 8 -n Attention_8 --ckpt-dir ../result/Attention_8 -e 10</code></pre>
+<pre><code>python train.py --cascade 8 -n Attention_8 --ckpt-dir ../result/Attention_8 -e 10</code></pre>
 --ckpt-dir을 통해 학습을 시작할 checkpoint를 설정할 수 있습니다.
 
 ### (6,10,7) Varnet training
