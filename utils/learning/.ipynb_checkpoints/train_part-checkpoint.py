@@ -15,7 +15,7 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
     start_epoch = start_iter = time.perf_counter()
     len_loader = len(data_loader)
     total_loss = 0.
-    momentum = 0.99
+    momentum = 0.999
     for iter, data in enumerate(data_loader):
         input_1, input_2, grappa, target, maximum, _, _ = data
         input_1 = input_1.cuda(non_blocking=True)

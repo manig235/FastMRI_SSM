@@ -226,7 +226,7 @@ class AttentionGUnet(nn.Module):
         out_chans: int,
         chans: int = 32,
         num_pool_layers: int = 4,
-        drop_prob: float = 0.1,
+        drop_prob: float = 0,
     ):
         """
         Args:
@@ -250,7 +250,7 @@ class AttentionGUnet(nn.Module):
             self.down_sample_layers.append(ConvBlock(ch, ch * 2, drop_prob))
             ch *= 2
         self.conv = ConvBlock(ch, ch * 2, drop_prob)
-        self.res_param = (nn.Parameter(torch.tensor(0.)))
+        self.res_param = (nn.Parameter(torch.tensor(-1)))
 #        self.avg_param = nn.Parameter(torch.tensor(0.))
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
@@ -296,16 +296,16 @@ class AttentionGUnet(nn.Module):
         output = torch.cat([image.unsqueeze(1), image_2.unsqueeze(1), grappa.unsqueeze(1)], dim = 1)
         #image transform
         randVal = random.random();
-        if randVal < 1/6:
-            output = transforms.functional.rotate(output, 90)
-        elif randVal < 2/6:
-            output = transforms.functional.rotate(output, 180)
-        elif randVal < 3/6:
-            output = transforms.functional.rotate(output, 270)
-        elif randVal < 4/6:
-            output = transforms.functional.hflip(output)
-        elif randVal < 5/6:
-            output = transforms.functional.vflip(output)
+#         if randVal < 1/6:
+#             output = transforms.functional.rotate(output, 90)
+#         elif randVal < 2/6:
+#             output = transforms.functional.rotate(output, 180)
+#         elif randVal < 3/6:
+#             output = transforms.functional.rotate(output, 270)
+#         elif randVal < 4/6:
+#             output = transforms.functional.hflip(output)
+#         elif randVal < 5/6:
+#             output = transforms.functional.vflip(output)
         
         # apply down-sampling layers
         for layer in self.down_sample_layers:
@@ -336,16 +336,16 @@ class AttentionGUnet(nn.Module):
 #        output = output[:,0,...]*self.avg+output[:,1,...]*(1-self.avg)
         
         #image invert
-        if randVal < 1/6:
-            output = transforms.functional.rotate(output, 270)
-        elif randVal < 2/6:
-            output = transforms.functional.rotate(output, 180)
-        elif randVal < 3/6:
-            output = transforms.functional.rotate(output, 90)
-        elif randVal < 4/6:
-            output = transforms.functional.hflip(output)
-        elif randVal < 5/6:
-            output = transforms.functional.vflip(output)
+#         if randVal < 1/6:
+#             output = transforms.functional.rotate(output, 270)
+#         elif randVal < 2/6:
+#             output = transforms.functional.rotate(output, 180)
+#         elif randVal < 3/6:
+#             output = transforms.functional.rotate(output, 90)
+#         elif randVal < 4/6:
+#             output = transforms.functional.hflip(output)
+#         elif randVal < 5/6:
+#             output = transforms.functional.vflip(output)
         output = output.squeeze(1)
         output = self.unnorm(output, mean, std)
 #         print(self.res_param)
