@@ -35,10 +35,15 @@ def train_epoch(args, epoch, model, data_loader, optimizer, loss_type):
         loss.backward()
 #         optimizer.step()
         total_loss += loss.item()
-        if (iter+1) % 4 == 0:
+        if args.last_train:
+            if (iter+1) % 4 == 0:
 #             print("GRAD")
             optimizer.step()
             optimizer.zero_grad()
+        else:
+            optimizer.step()
+            optimizer.zero_grad()
+            
         if iter % args.report_interval == 0:
             print(
                 f'Epoch = [{epoch:3d}/{args.num_epochs:3d}] '
@@ -189,7 +194,7 @@ def train(args):
             f'Epoch = [{epoch:4d}/{args.num_epochs:4d}] TrainLoss = {train_loss:.4g} '
             f'ValLoss = {val_loss:.4g} TrainTime = {train_time:.4f}s ValTime = {val_time:.4f}s',
         )
-        if (epoch +1) %3 == 0:
+        if (epoch +1) %3 == 0 and args.last_train:
             args.lr = args.lr *0.8
         if is_new_best:
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@NewRecord@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
