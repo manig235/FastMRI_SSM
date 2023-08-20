@@ -41,7 +41,7 @@ batch 조건과 0.8배 감소 조건은 last-train argument가 1이 될때 작�
 reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니다.
 
 38 epoch 학습을 진행하였습니다.
-<pre><code>python train.py --ckpt-dir '../result/Unet_32_1_high/' --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
+<pre><code>python train.py --in-chans 3 -t '../reconstruct_6_10_7/train/image' -v '../reconstruct_6_10_7/val/image' --input-key recons --grappa-key grappa --target-key target -e 38 -r 200 -n Unet_32_1_high -t2 '../reconstruct_cascade8/train/image/' -v2 '../reconstruct_cascade8/val/image/'</code></pre>
 이 코드를 실행하면 result에 Unet_32_1_high가 생성됩니다.
 
 ##	Evaluation
