@@ -121,7 +121,7 @@ def train(args):
         checkpoint = torch.load(args.ckpt_dir /'checkpoints/best_model.pt', map_location='cpu')
         print(checkpoint['epoch'], checkpoint['best_val_loss'].item())
         print(checkpoint['model']['res_param'])
-        checkpoint['model']['res_param'] = (torch.tensor(1.))
+        checkpoint['model']['res_param'] = (torch.tensor(0.5))
         model.load_state_dict(checkpoint['model'])
 #     lr = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=4, T_mult=2)
     
@@ -129,8 +129,8 @@ def train(args):
     start_epoch = 0
 
     
-    train_loader = create_data_loaders(data_path = args.data_path_train, args = args, shuffle=True)
-    val_loader = create_data_loaders(data_path = args.data_path_val, args = args)
+    train_loader = create_data_loaders(data_path = args.data_path_train, data_path_2 = args.data_path_train2, args = args, shuffle=True)
+    val_loader = create_data_loaders(data_path = args.data_path_val, data_path_2 = args.data_path_train2, args = args)
 
     val_loss_log = np.empty((0, 2))
     for epoch in range(start_epoch, args.num_epochs):

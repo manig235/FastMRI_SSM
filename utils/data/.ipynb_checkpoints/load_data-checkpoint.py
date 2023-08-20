@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 class SliceData(Dataset):
-    def __init__(self, root, transform, input_key, grappa_key, target_key, forward=False):
+    def __init__(self, root, root2, transform, input_key, grappa_key, target_key, forward=False):
         self.transform = transform
         self.input_key = input_key
         self.target_key = target_key
@@ -22,7 +22,7 @@ class SliceData(Dataset):
             self.examples += [
                 (fname, slice_ind) for slice_ind in range(num_slices)
             ]
-        root2 = str(root).replace('reconstruct_6_10_7', 'reconstruct_cascade8')
+#         root2 = str(root).replace('reconstruct_6_10_7', 'reconstruct_cascade8')
         files_2 = list(Path(root2).iterdir())
         for fname in sorted(files_2):
             num_slices = self._get_metadata(fname)
@@ -60,7 +60,7 @@ class SliceData(Dataset):
         return self.transform(input_1, input_2,  grappa, target, attrs, fname.name, dataslice)
 
 
-def create_data_loaders(data_path, args, shuffle=False, isforward=False):
+def create_data_loaders(data_path, data_path_2, args, shuffle=False, isforward=False):
     if isforward == False:
         max_key_ = args.max_key
         target_key_ = args.target_key
@@ -69,6 +69,7 @@ def create_data_loaders(data_path, args, shuffle=False, isforward=False):
         target_key_ = -1
     data_storage = SliceData(
         root=data_path,
+        root2 = data_path_2,
         transform=DataTransform(isforward, max_key_),
         input_key=args.input_key,
         grappa_key = args.grappa_key,
