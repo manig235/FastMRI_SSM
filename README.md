@@ -49,8 +49,8 @@ reconsturction이 완료되면 recons_unet branch 에서 학습을 진행합니�
 ###	Varnet reconstruction 
 Varnet_Attention branch에서 leaderboard reconstruction을 수행합니다. (8,9,4), (6,10,7) 조합에 대해서 각각 수행해야 합니다.
 
-<pre><code>python reconstruct.py -n AttVarnet_cascade8</code></pre>
-<pre><code>python reconstruct.py -n Attention_6_10_7_final</code></pre>
+<pre><code>python reconstruct.py -n AttVarnet_cascade8 --cascade 8</code></pre>
+<pre><code>python reconstruct.py -n Attention_6_10_7_final --cascade 6 --chans 10 --sens_chans</code></pre>
 ###	Upscaling Attention Unet restruction & forwarding
 recons_unet branch에서 최종 leaderboard reconstruction을 수행합니다. \
 Grappa image는 /Data/leaderboard/ 폴더에서 가져옵니다. 필요한 경우 {grappa_path}의 자리에 grappa_image를 추가하면 됩니다.
